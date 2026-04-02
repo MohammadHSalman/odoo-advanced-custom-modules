@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- Inherit and modify POS order form view to add custom fields and buttons -->
+        <record id="view_pos_order_form_inherit_custom" model="ir.ui.view">
+            <field name="name">pos.order.form.inherit.custom</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+            <field name="arch" type="xml">
+                <!-- Add a ribbon widget to indicate "Posted to Finance" -->
+                <xpath expr="//div[@name='button_box']" position="after">
+                    <widget name="web_ribbon" title="Posted to Finance" bg_color="bg-success"
+                            invisible="code == False"/>
+                </xpath>
+                <!-- Add "Send Order" button after the refund button -->
+                <xpath expr="//button[@name='refund']" position="after">
+                    <button name="send_order" string="Send Order" type="object" class="btn-primary"
+                            invisible="state != 'paid' or code != False"/>
+                </xpath>
+                <!-- Update the status bar to include the 'send' state -->
+                <xpath expr="//field[@name='state']" position="attributes">
+                    <attribute name="statusbar_visible" add="send"/>
+                </xpath>
+                <xpath expr="//field[@name='fiscal_position_id']" position="attributes">
+                    <attribute name="readonly">code != False</attribute>
+                </xpath>
+                <xpath expr="//field[@name='partner_id']" position="attributes">
+                    <attribute name="readonly">code != False</attribute>
+                </xpath>
+                <xpath expr="//group[@name = 'order_fields']" position="before">
+                    <group>
+                        <field name="id" string="Sequence Order"/>
+                        <field name="create_time" invisible="1"/>
+                    </group>
+                </xpath>
+                <!-- Add a new page for Financial Info with relevant fields -->
+                <xpath expr="//page[@name='notes']" position="after">
+                    <page id="page_financial_info" string="Financial Info">
+                        <group id="group_financial_info">
+                            <group name="Financial Information">
+                                <field name="check" invisible="1"/>
+                                <field name="code" readonly="1"/>
+                                <field name="order_date" readonly="1"/>
+                                <field name="random_number" readonly="1"/>
+                                <field name="code_uuid" readonly="1"/>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Inherit and modify POS order tree view to add financial condition badge -->
+        <record id="view_pos_order_tree_inherit_custom" model="ir.ui.view">
+            <field name="name">pos.order.tree.inherit.custom</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+            <field name="arch" type="xml">
+                <!-- Add a badge for financial condition after the state field -->
+                <xpath expr="//field[@name='state']" position="after">
+                    <field name="financial_condition" widget="badge"
+                           decoration-warning="financial_condition == 'Not deported'"
+                           decoration-success="financial_condition == 'Deported'"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Uncomment and modify the server action if needed for sending orders -->
+        <!--
+        <record id="action_send_order_server" model="ir.actions.server">
+            <field name="name">Send Order</field>
+            <field name="type">ir.actions.server</field>
+            <field name="model_id" ref="model_pos_order"/>
+            <field name="binding_model_id" ref="model_pos_order"/>
+            <field name="binding_view_types">list</field>
+            <field name="state">code</field>
+            <field name="code">
+                if records:
+                    for rec in records:
+                        if rec.check == 0:
+                            rec.send_multi_order()
+            </field>
+        </record>
+        -->
+
+        <!-- Inherit and modify POS order form view to add QR code field -->
+        <record id="view_pos_order_form_inherit_qr_code" model="ir.ui.view">
+            <field name="name">pos.order.form.inherit.qr.code</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+            <field name="arch" type="xml">
+                <!-- Add a group for QR code after order fields group -->
+                <xpath expr="//group[@name='order_fields']" position="after">
+                    <group>
+                        <field name="qr_code_pos" widget='image' class="qr_code_sapps"
+                               style="height: 130px; width: 130px;" invisible="1"/>
+                    </group>
+                    <field name="reprint_count" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

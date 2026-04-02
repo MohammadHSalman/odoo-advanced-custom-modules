@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_inherit_types" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.types</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+
+            <!-- سنضيف الحقول بعد حقل الـ Tags (التصنيفات) أو تحت الاسم مباشرة -->
+<!--            <xpath expr="//sheet//group[1]" position="before">-->
+<!--                <div class="o_row">-->
+<!--                    &lt;!&ndash; حقل الزبون &ndash;&gt;-->
+<!--                    <field name="is_my_customer"/>-->
+<!--                    <label for="is_my_customer" string="Customer" class="mr-4"/>-->
+
+<!--                    &lt;!&ndash; حقل المورد &ndash;&gt;-->
+<!--                    <field name="is_my_vendor"/>-->
+<!--                    <label for="is_my_vendor" string="Vendor" class="mr-4"/>-->
+
+<!--                    &lt;!&ndash; حقل الموظف &ndash;&gt;-->
+<!--                    <field name="is_my_employee"/>-->
+<!--                    <label for="is_my_employee" string="Employee"/>-->
+<!--                </div>-->
+<!--            </xpath>-->
+
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_invoices_detail">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+
+                        <div class="text-center" style="border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px;">
+                            <h2>Tax Invoice Details / تفاصيل الفاتورة الضريبية</h2>
+                        </div>
+
+                        <t t-if="o.move_type!='out_refund'">
+                            <t t-if="o.printed">
+                                <div style="position: absolute; top: 100px; right: 50px; transform: rotate(-30deg); opacity: 0.5;">
+                                    <span style="font-weight: 800; font-size: 40px; color: #FF5733; border: 5px solid #FF5733; padding: 10px; border-radius: 10px;">
+                                        COPY
+                                    </span>
+                                </div>
+                            </t>
+                        </t>
+
+                        <div class="row mt-4 mb-4">
+                            <div class="col-12">
+                                <h4 style="color: #666; border-bottom: 1px solid #ccc;">Invoice Information / بيانات الفاتورة</h4>
+                            </div>
+                        </div>
+
+                        <div class="row" style="font-size: 16px;">
+                            <div class="col-6">
+                                <strong>Invoice Number: </strong>
+                                <span t-if="o.mobile_invoice_number" t-field="o.mobile_invoice_number"/>
+                                <span t-else="" t-field="o.name"/>
+                            </div>
+                            <div class="col-6 text-right">
+                                <strong>Date: </strong> <span t-field="o.date_bill"/>
+                            </div>
+                        </div>
+                        <div class="row mt-2" style="font-size: 16px;">
+                            <div class="col-12">
+                                <strong>Customer: </strong> <span t-field="o.partner_id"/>
+                            </div>
+                        </div>
+
+                        <div class="row mt-5 mb-3">
+                            <div class="col-12 text-center">
+                                <h4 style="font-weight: bold; background-color: #f0f0f0; padding: 5px;">Order Lines / بنود الفاتورة</h4>
+                            </div>
+                        </div>
+
+                        <table class="table table-sm o_main_table" name="invoices" style="width: 100%; border: 1px solid #ddd;">
+                            <thead style="background-color: #93a7a0; color: white;">
+                                <tr>
+                                    <th class="text-center">Product</th>
+                                    <th class="text-center">QTY</th>
+                                    <th class="text-center">Price Unit</th>
+                                    <th class="text-center">Tax 5%</th>
+                                    <th class="text-center">Tax 10%</th>
+                                    <th class="text-center">Tax 5% (Rec)</th>
+                                    <th class="text-center">Total Line</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.invoice_line_ids" t-as="line" class="text-center">
+                                    <td style="border: 1px solid #eee;">
+                                        <span t-field="line.product_id"/>
+                                    </td>
+                                    <td style="border: 1px solid #eee;">
+                                        <span t-field="line.quantity"/>
+                                    </td>
+                                    <td style="border: 1px solid #eee;">
+                                        <span t-field="line.price_unit"/>
+                                    </td>
+                                    <td style="border: 1px solid #eee;">
+                                        <span t-field="o.consumer_spending_tax"/>
+                                    </td>
+                                    <td style="border: 1px solid #eee;">
+                                        <span t-field="o.local_administration_tax"/>
+                                    </td>
+                                    <td style="border: 1px solid #eee;">
+                                        <span t-field="o.reconstruction_tax"/>
+                                    </td>
+                                    <td style="border: 1px solid #eee;">
+                                        <span t-esc="line.price_unit * line.quantity + o.consumer_spending_tax + o.local_administration_tax + o.reconstruction_tax"
+                                              t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="row justify-content-end mt-3">
+                            <div class="col-4">
+                                <table class="table table-sm">
+                                    <tr class="border-black o_total">
+                                        <td><strong>Total</strong></td>
+                                        <td class="text-right">
+                                            <span t-field="o.calculated_total"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 50px; border-top: 2px solid #000; padding-top: 10px;">
+                            <t t-if="o.qr_code">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="text-align: left;">
+                                        <strong>SAPPS-ODOO-V:1.0</strong>
+                                        <br/>
+                                        <span style="font-size: 10px; color: gray;" t-field="o.code_uuid"/>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <img t-att-src="image_data_uri(o.qr_code)" style="width: 120px; height: 120px;"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- التواقيع -->
+                        <table style="width: 100%; margin-top: 30px;">
+                            <tr>
+                                <td class="text-center" style="padding: 20px; border: 1px dashed gray;">
+                                    <strong>Customer Signature</strong>
+                                </td>
+                                <td style="width: 20%;"></td>
+                                <td class="text-center" style="padding: 20px; border: 1px dashed gray;">
+                                    <strong>Seller Signature</strong>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <t t-set="printed" t-value="o.make_it_printed()"/>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

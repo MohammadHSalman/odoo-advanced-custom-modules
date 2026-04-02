@@ -1,0 +1,150 @@
+# -*- coding: utf-8 -*-
+from odoo import fields, models, api
+from odoo.exceptions import ValidationError
+
+
+class ResPartner(models.Model):
+    _inherit = "res.partner"
+
+    is_my_customer = fields.Boolean(string="Customer", default=False)
+    is_my_vendor = fields.Boolean(string="Vendor", default=False)
+    is_my_employee = fields.Boolean(string="Employee", default=False)
+
+    # --- تعريف الحقول ---
+    state_id = fields.Many2one('res.country.state', string='State')
+    industry_id = fields.Many2one('res.partner.industry', string='Industry')
+    company_id = fields.Many2one('res.company', string='Company')
+    country_id = fields.Many2one('res.country', string='Country')
+
+    # --- الدالة المساعدة لجلب IDs التاجات ---
+    def _get_default_category_ids(self):
+        company_name = self.env.company.name
+        tag_name = False
+
+        keyword_map = {
+            'دمشق': 'زبائن فرع دمشق',
+            'حلب': 'زبائن فرع حلب',
+            'اللاذقية': 'زبائن فرع اللاذقية',
+            'حمص': 'زبائن فرع حمص',
+            'طرطوس': 'زبائن فرع طرطوس',
+            'السويداء': 'زبائن فرع السويداء',
+            'درعا': 'زبائن فرع درعا',
+            'حماة': 'زبائن فرع حماة',
+        }
+
+        for keyword, target_tag in keyword_map.items():
+            if keyword in company_name:
+                tag_name = target_tag
+                break
+
+        if not tag_name:
+            tag_name = f"زبائن {company_name}"
+
+        if tag_name:
+            category = self.env['res.partner.category'].search([('name', '=', tag_name)], limit=1)
+            if category:
+                return [category.id]
+
+        return []
+
+    category_id = fields.Many2many(
+        'res.partner.category',
+        column1='partner_id',
+        column2='category_id',
+        string='Tags'
+    )
+
+    # --- دالة default_get (للقيم الافتراضية عند الفتح) ---
+    @api.model
+    def default_get(self, fields_list):
+        res = super(ResPartner, self).default_get(fields_list)
+        ctx = self.env.context
+
+        customer_rank = res.get('customer_rank', ctx.get('default_customer_rank', 0))
+        supplier_rank = res.get('supplier_rank', ctx.get('default_supplier_rank', 0))
+
+        is_customer = False
+
+        if customer_rank > 0:
+            res['is_my_customer'] = True
+            res['is_my_employee'] = False
+            is_customer = True
+        elif supplier_rank > 0:
+            res['is_my_vendor'] = True
+            res['is_my_employee'] = False
+        else:
+            res['is_my_employee'] = True
+            res['is_my_customer'] = False
+            res['is_my_vendor'] = False
+
+        if is_customer:
+            if 'company_id' in fields_list and not res.get('company_id'):
+                res['company_id'] = self.env.company.id
+
+            if 'country_id' in fields_list and not res.get('country_id'):
+                syria = self.env['res.country'].search([('code', '=', 'SY')], limit=1)
+                if syria:
+                    res['country_id'] = syria.id
+
+            if 'category_id' in fields_list:
+                ids_list = self._get_default_category_ids()
+                if ids_list:
+                    res['category_id'] = [(6, 0, ids_list)]
+
+        return res
+
+    # --- التحقق من الإدخال ---
+    @api.constrains('is_my_customer', 'state_id', 'industry_id')
+    def _check_customer_requirements(self):
+        for record in self:
+            if record.is_my_customer:
+                if not record.state_id:
+                    raise ValidationError("حقل المحافظة (State) مطلوب للزبائن.")
+                if not record.industry_id:
+                    raise ValidationError("حقل القطاع (Industry) مطلوب للزبائن.")
+
+    # --- التعديل هنا: إضافة else لتفريغ الحقول ---
+    @api.onchange('is_my_customer')
+    def _onchange_is_my_customer(self):
+        if self.is_my_customer:
+            # الحالة: تم تفعيل الزبون
+            self.customer_rank = 1
+            self.is_my_employee = False
+
+            if not self.country_id:
+                country = self.env['res.country'].search([('code', '=', 'SY')], limit=1)
+                self.country_id = country.id
+            if not self.company_id:
+                self.company_id = self.env.company
+
+            if not self.category_id:
+                ids = self._get_default_category_ids()
+                if ids:
+                    self.category_id = [(6, 0, ids)]
+
+        else:
+            # الحالة: تم إلغاء تفعيل الزبون (إزالة القيم الافتراضية)
+            self.customer_rank = 0
+
+            # تفريغ الحقول التي تم تعبئتها افتراضياً
+            self.country_id = False
+            self.company_id = False
+            self.state_id = False
+            self.industry_id = False
+
+            # إزالة جميع التاجات (أو يمكنك تركها إذا فضلت ذلك)
+            # الأمر (5, 0, 0) يقوم بحذف جميع العلاقات في Many2many
+            self.category_id = [(5, 0, 0)]
+
+    @api.onchange('is_my_vendor')
+    def _onchange_is_my_vendor(self):
+        if self.is_my_vendor:
+            self.supplier_rank = 1
+            self.is_my_employee = False
+
+    @api.onchange('is_my_employee')
+    def _onchange_is_my_employee(self):
+        if self.is_my_employee:
+            self.is_my_customer = False
+            self.is_my_vendor = False
+

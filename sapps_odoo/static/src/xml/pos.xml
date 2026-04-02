@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+        <xpath expr="//t[@t-name='point_of_sale.OrderReceipt']/div/div[hasclass('pos-receipt-taxes')]" position="after">
+            <img t-att-src='props.data.qrcode_img' alt="QR CODE" style="margin-left: 19%;width: 65%;"/>
+            <br/>
+            SAPPS-ODOO-V:1.0
+            <br/>
+            <div t-if="props.data.reprint_count > 0">
+                <div class="pos-receipt-order-data" style="font-size: 32px; color: #9191a8; font-weight: bold;">
+                    Copy: <t t-esc="props.data.reprint_count"/>
+                </div>
+            </div>
+        </xpath>
+        <xpath expr="//ReceiptHeader" position="after">
+            <div style="text-align: center; font-weight: bold; font-size: 12px;">
+                <span>Receipt: </span>
+                <span t-esc="props.data.server_id"/>
+            </div>
+            <div style="text-align: center; font-weight: bold; font-size: 12px;">
+                <span>Open at : </span>
+                <span t-esc="props.data.create_time"/>
+            </div>
+        </xpath>
+
+        <xpath expr="//t[@t-name='point_of_sale.OrderReceipt']/div/div[hasclass('pos-receipt-amount')]"
+               position="replace">
+            <div style="font-size: 12px;">
+                TOTAL Without Tax
+                <span t-esc="props.formatCurrency(props.data.total_without_tax)" class="pos-receipt-right-align"/>
+            </div>
+
+            <div style="font-size: 12px !important">
+                TOTAL Tax
+                <span t-esc="props.formatCurrency(props.data.amount_tax)" class="pos-receipt-right-align"/>
+            </div>
+            <div style="font-size: 12px;">
+                TOTAL
+                <span t-esc="props.formatCurrency(props.data.amount_total)" class="pos-receipt-right-align"/>
+            </div>
+        </xpath>
+        <xpath expr="//t[@t-name='point_of_sale.OrderReceipt']/div/div[hasclass('pos-receipt-taxes')]"
+               position="replace">
+            <table t-if="props.data.tax_details.length > 0"  style="width: 100%; text-align: left;font-size: 12px">
+                <!-- عنوان الجدول -->
+                <thead>
+        <!--            <tr>-->
+                    <!--                <th style="text-align: left;">Tax Name</th>-->
+                    <!--                <th style="text-align: right;">Amount</th>-->
+                    <!--            </tr>-->
+                </thead>
+                <tbody>
+                    <!-- عرض الضرائب -->
+                    <t t-foreach="props.data.tax_details" t-as="tax" t-key="tax.tax.id">
+                        <tr>
+                            <td><t t-esc="tax.tax.name"/></td>
+                            <td style="text-align: right;"><t t-esc="props.formatCurrency(tax.amount, false)"/></td>
+                        </tr>
+                    </t>
+                    <!-- إجمالي الضرائب -->
+                    <t t-if="props.data.tax_details.length > 1">
+                        <tr style="font-weight: bold; border-top: 1px solid #000;">
+                            <td>Total Tax</td>
+                            <td style="text-align: right;"><t t-esc="props.formatCurrency(props.data.amount_tax, false)"/></td>
+                        </tr>
+                    </t>
+                </tbody>
+            </table>
+        </xpath>
+    </t>
+
+    <!-- <t t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('fw-bolder')]" position="replace">
+        </xpath>
+    </t> -->
+</templates>

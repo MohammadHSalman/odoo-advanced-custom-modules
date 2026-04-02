@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_attachment_sale_custom_list" model="ir.ui.view">
+        <field name="name">sale.attachment.custom.list</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <list string="Attachments" multi_edit="0">
+                <field name="res_name" string="Order Number" decoration-bf="1"/>
+                <field name="sale_order_partner_id" widget="many2one_avatar"/>
+                <field name="name" string="File Name" optional="show"/>
+                <field name="file_size" optional="show"/>
+                <field name="create_uid" widget="many2one_avatar_user" optional="hide"/>
+                <field name="create_date" optional="show"/>
+                <field name="type" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_attachment_sale_custom_kanban" model="ir.ui.view">
+        <field name="name">sale.attachment.custom.kanban</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <kanban edit="false" import="false" sample="1">
+                <field name="id"/>
+                <field name="mimetype"/>
+                <field name="type"/>
+                <field name="name"/>
+                <field name="res_name"/>
+                <field name="sale_order_partner_id"/>
+                <field name="create_uid"/>
+                <field name="create_date"/>
+                <templates>
+                    <t t-name="menu">
+                        <a t-attf-href="/web/content/ir.attachment/#{record.id.raw_value}/datas?download=true"
+                           download="" class="dropdown-item">Download
+                        </a>
+                        <a t-if="widget.deletable" role="menuitem" type="delete" class="dropdown-item">Delete</a>
+                    </t>
+                    <t t-name="card" class="o_kanban_attachment flex-row">
+                        <aside class="o_kanban_image m-1">
+                            <div class="o_kanban_image_wrapper d-flex align-items-center justify-content-center">
+                                <t t-set="webimage"
+                                   t-value="new RegExp('image.*(gif|jpeg|jpg|png|webp)').test(record.mimetype.value)"/>
+                                <div t-if="record.type.raw_value == 'url'" class="fa fa-link fa-3x text-muted"
+                                     aria-label="Image is a link"/>
+                                <img t-elif="webimage" t-attf-src="/web/image/#{record.id.raw_value}" width="100"
+                                     height="100" alt="Document" class="o_attachment_image"/>
+                                <div t-else="!webimage" class="o_image o_image_thumbnail"
+                                     t-att-data-mimetype="record.mimetype.value"/>
+                            </div>
+                        </aside>
+                        <main class="o_kanban_details ms-1">
+                            <div class="o_kanban_details_wrapper d-flex flex-column">
+                                <div class="fw-bold fs-5 text-primary">
+                                    <field name="res_name"/>
+                                </div>
+                                <div class="text-muted fw-bold">
+                                    <i class="fa fa-user me-1"/>
+                                    <field name="sale_order_partner_id"/>
+                                </div>
+<!--                                <div class="small text-truncate mt-1">-->
+<!--                                    <i class="fa fa-file-text-o me-1"/>-->
+<!--                                    <field name="name"/>-->
+<!--                                </div>-->
+                                <div class="d-flex flex-grow-1 align-items-center">
+                                    <t t-if="record.type.raw_value == 'url'">
+                                        <i class="fa fa-globe" aria-label="Document url"/>
+                                        <field name="url" widget="url"/>
+                                    </t>
+                                </div>
+                                <div class="d-flex mt-auto">
+                                    <field name="create_date"/>
+                                    <field name="create_uid" widget="many2one_avatar_user" class="ms-auto"/>
+                                </div>
+                            </div>
+                        </main>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_attachment_sale_custom_search" model="ir.ui.view">
+        <field name="name">sale.attachment.custom.search</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <search string="Search Attachments">
+                <field name="sale_order_id" string="Order"/>
+                <field name="sale_order_partner_id" string="Customer"/>
+                <field name="create_uid" string="Salesperson"/>
+                <filter string="My Attachments"
+                        name="my_attachments"
+                        domain="[('create_uid', '=', uid)]"/>
+                <filter name="url_filter" string="URL" domain="[('type', '=', 'url')]"/>
+                <filter name="binary_filter" string="Stored" domain="[('type', '=', 'binary')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer"
+                            name="group_by_customer"
+                            context="{'group_by': 'sale_order_partner_id'}"/>
+                    <filter name="owner" string="Salesperson" domain="[]" context="{'group_by':'create_uid'}"/>
+                    <filter string="Type" name="type" domain="[]" context="{'group_by':'type'}"
+                            groups="base.group_no_one"/>
+                    <filter string="Company" name="company" domain="[]" context="{'group_by':'company_id'}"
+                            groups="base.group_multi_company"/>
+                    <filter string="Creation Date" name="creation_month" domain="[]"
+                            context="{'group_by':'create_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_sale_order_attachments" model="ir.actions.act_window">
+        <field name="name">Sales Attachments</field>
+        <field name="res_model">ir.attachment</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('res_model', '=', 'sale.order')]</field>
+        <field name="context">{'create': False, 'edit': False}</field>
+        <field name="search_view_id" ref="view_attachment_sale_custom_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No attachments found yet.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_sale_attachments_kanban_link" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="view_attachment_sale_custom_kanban"/>
+        <field name="act_window_id" ref="action_sale_order_attachments"/>
+    </record>
+
+    <record id="action_sale_attachments_list_link" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_attachment_sale_custom_list"/>
+        <field name="act_window_id" ref="action_sale_order_attachments"/>
+    </record>
+
+    <menuitem id="menu_sale_attachments"
+              name="Sales Attachments"
+              parent="sale.menu_sale_report"
+              action="action_sale_order_attachments"
+              sequence="100"/>
+
+</odoo>

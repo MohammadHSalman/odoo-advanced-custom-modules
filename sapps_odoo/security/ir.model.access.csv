@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_tax_verification,tax.verification,model_tax_verification,base.group_user,1,1,1,1
+access_bill_success_wizard,bill.success.wizard,model_bill_success_wizard,base.group_user,1,1,1,1
+access_sent_invoices,sent.invoices,model_sent_invoices,base.group_user,1,1,1,1
+access_pos_order_audit_log,access_pos_order_audit_log,model_pos_order_audit_log,,1,1,1,0
+

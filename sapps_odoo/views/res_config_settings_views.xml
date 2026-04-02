@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="res_config_settings_view_form_sapps" model="ir.ui.view">
+            <field name="name">res.config.settings.sapps.block</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+
+                <!-- إضافة البلوك داخل general_settings -->
+                <xpath expr="//app[@name='general_settings']" position="inside">
+
+                    <div class="app_settings_block icon d-none d-md-block"
+                         data-string="S-Apps"
+                         data-key="sapps_block">
+
+                        <h2>About S-Apps</h2>
+
+                        <div class="row mt16 o_settings_container">
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+
+<!--                                    <label string="Visit Our Website"/>-->
+                                    <div class="text-muted" style="text-align: center; width: 100%; padding: 10px 0;">
+                                        <a href="https://www.s-apps.io/" target="_blank">
+                                            <img src="/sapps_odoo/static/src/img/odoo s-apps.png"
+                                                 alt="Visit S-Apps"
+                                                 style="max-width: 100%; height: auto;"/>
+                                        </a>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </xpath>
+
+            </field>
+        </record>
+
+    </data>
+</odoo>

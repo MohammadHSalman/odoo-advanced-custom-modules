@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="report_invoices_details" model="ir.actions.report">
+        <field name="name">Invoices Details</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sapps_odoo.report_invoices_detail</field>
+        <field name="report_file">sapps_odoo.report_invoices_detail</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+    </record>
+
+</odoo>

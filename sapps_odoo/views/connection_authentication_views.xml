@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+  <data>
+    <!-- Custom tree view for displaying tax.verification data -->
+    <record model="ir.ui.view" id="view_tax_verification_tree">
+      <field name="name">tax.verification.tree</field>
+      <field name="model">tax.verification</field>
+      <field name="arch" type="xml">
+        <list create="1" edit="1">
+          <field name="userName"/>
+          <field name="passWord" password="True"/>
+        </list>
+      </field>
+    </record>
+    <!-- Custom form view for displaying and editing tax.verification data -->
+    <record id="view_tax_verification_form" model="ir.ui.view">
+      <field name="name">tax.verification.form</field>
+      <field name="model">tax.verification</field>
+      <field name="arch" type="xml">
+        <form string="Tax Verification" create="1" edit="1">
+          <header>
+            <button string="Test &amp; Confirm" type="object" name="connection" invisible="state != 'draft'"/>
+            <field name="state" widget="statusbar"/>
+          </header>
+          <sheet>
+            <group>
+              <group>
+                <field name="userName"/>
+                <field name="passWord" password="True"/>
+                <field name="company_vat"/>
+              </group>
+            </group>
+          </sheet>
+          <chatter/>
+        </form>
+      </field>
+    </record>
+    <!-- Action to open the appropriate view on the tax.verification model -->
+    <record model="ir.actions.act_window" id="action_tax_verification">
+      <field name="name">Tax Compliance Integration</field>
+      <field name="res_model">tax.verification</field>
+      <field name="view_mode">list,form</field>
+    </record>
+    <!-- Server action to open the appropriate view -->
+    <record model="ir.actions.server" id="action_server_tax_verification">
+      <field name="name">Tax Verification Server Action</field>
+      <field name="model_id" ref="model_tax_verification"/>
+      <field name="state">code</field>
+      <field name="code">
+                action = {
+                "type": "ir.actions.act_window",
+                "view_mode": "tree,form",
+                "res_model": model._name,
+                }
+            </field>
+    </record>
+    <!-- Defining the main and sub-menu items -->
+    <menuitem id="menu_tax_compliance" name="Tax Compliance" parent="account.account_management_menu" sequence="10" groups="account.group_account_manager"/>
+    <menuitem name="Tax Compliance Integration" id="menu_tax_verification" action="action_tax_verification" parent="menu_tax_compliance" sequence="0"/>
+  </data>
+</odoo>
