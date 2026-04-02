@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_vehicle_contract_wizard,access.vehicle.contract.wizard,model_vehicle_contract_wizard,,1,1,1,1
+access_fuel_vehicle,access.fuel.vehicle,model_fuel_vehicle,,1,1,1,1
+access_odometer_vehicle,access.odometer.vehicle,model_odometer_vehicle,,1,1,1,1
+access_booking_type,access.booking.type,model_booking_type,,1,1,1,1
+access_car_category,access.car.category,model_car_category,,1,1,1,1
+access_fuel_mang,access.fuel.mang,model_fuel_mang,,1,1,1,1
+access_fine_car,access.fine.car,model_fine_car,,1,1,1,1
+access_location_car,access.location.car,model_location_car,,1,1,1,1
+access_car_replacement,access.car.replacement,model_car_replacement,,1,1,1,1

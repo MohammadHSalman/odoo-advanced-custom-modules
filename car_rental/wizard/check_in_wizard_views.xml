@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_vehicle_contract_wizard_form_MHAZAS" model="ir.ui.view">
+        <field name="name">vehicle.contract.wizard.form</field>
+        <field name="model">vehicle.contract.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Vehicle check In Details">
+                <group>
+
+                    <group>
+                        <field name="date_of_check_in" readonly="1"/>
+                        <field name="contract_id" invisible="1"/>
+                        <field name="check_in_odometer" string="Check IN KM" required="1"/>
+                        <field name="check_out_odometer" string="Check OUT KM" required="1"/>
+                        <field name="extra_odometer" string="Extra KM" required="1"/>
+                    </group>
+                    <group>
+                        <field name="check_in_fuel" string="Check IN Fuel" required="1"/>
+                        <field name="check_out_fuel" string="Check OUT Fuel" required="1"/>
+                        <field name="extra_fuel" string="Extra Fuel" required="1"/>
+                    </group>
+                </group>
+                <group>
+                    <group>
+                        <field name="extra_days" string="Extra Days" required="1"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_apply" string="Apply" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

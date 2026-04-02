@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="car_replacement_view_form_MHAZAS" model="ir.ui.view">
+        <field name="name">car replacement view form</field>
+        <field name="model">car.replacement</field>
+        <field name="arch" type="xml">
+            <form string="Car Replacement">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="r_reference_no"/>
+                        </h1>
+                    </div>
+                    <div>
+                        <field name="responsible_id" invisible="1"/>
+                        <field name="is_super_admin"  invisible="1"/>
+                    </div>
+                    <group string="Customer Details">
+                        <group>
+                            <field name="customer_id"/>
+                            <field name="contract_ids" invisible="1"/>
+                            <field name="contract_id" domain="[('id', 'in', contract_ids)]" options="{'no_create': True}"/>
+
+                            <field name="date_of_replacement" invisible="0"/>
+                        </group>
+                        <group>
+                            <field name="customer_phone"/>
+                            <field name="customer_mobile"/>
+                            <field name="customer_email"/>
+                        </group>
+                    </group>
+                    <group string="Vehicle Details">
+                        <group>
+                            <field name="vehicle_id"/>
+                            <field name="license_plate" invisible="1"/>
+                            <field name="model_year" readonly="1" force_save="1"/>
+                            <field name="transmission" readonly="1" force_save="1"/>
+                            <field name="fuel_type" readonly="1" force_save="1"/>
+                            <label for="last_odometer" class="mt-1" string="Last Odometer"/>
+                            <div name="last_odometer">
+                                <field name="last_odometer" class="oe_inline" readonly="is_super_admin == False"/>
+                                <strong>&#160;/
+                                    <field name="odometer_unit" class="oe_inline" readonly="1"/>
+                                </strong>
+                            </div>
+                            <label for="allowed_km_all" class="mt-1" string="Expected KM"/>
+                            <div name="allowed_km_all">
+                                <field name="allowed_km_all" class="oe_inline"/>
+                                <strong>&#160;/
+                                    <field name="odometer_unit" class="oe_inline" readonly="1"/>
+                                </strong>
+                            </div>
+                            <field name="allowed_fuel_all" readonly="1" force_save="1"/>
+                        </group>
+                        <group>
+                            <label for="check_in_odometer" class="mt-1" string="Check In Odometer"/>
+                            <div name="check_in_odometer">
+                                <field name="check_in_odometer" class="oe_inline" readonly="vehicle_id == False"/>
+                                <strong>&#160;/
+                                    <field name="odometer_unit" class="oe_inline" readonly="1"/>
+                                </strong>
+                            </div>
+                            <field name="last_fuel"/>
+                            <field name="check_in_fuel" readonly="vehicle_id == False"/>
+                            <field name="show_invoice_button" invisible="1"/>
+                            <field name="driver_id"/>
+                            <button name="action_create_invoice" string="Create Invoice" type="object" class="btn-primary" invisible="show_invoice_button == False"/>
+                        </group>
+                    </group>
+
+                    <group string="Replacement Vehicle Details">
+                        <group>
+                            <field name="r_vehicle_id"/>
+                            <field name="r_license_plate" invisible="1"/>
+                            <field name="r_model_year" readonly="1" force_save="1"/>
+                            <field name="r_transmission" readonly="1" force_save="1"/>
+                            <field name="r_fuel_type" readonly="1" force_save="1"/>
+                        </group>
+                        <group>
+                            <label for="r_last_odometer" class="mt-1" string="Last Odometer"/>
+                            <div name="r_last_odometer">
+                                <field name="r_last_odometer" class="oe_inline"/>
+                                <strong>&#160;/
+                                    <field name="r_odometer_unit" class="oe_inline" readonly="1"/>
+                                </strong>
+                            </div>
+                            <label for="r_check_in_odometer" class="mt-1" string="Check In Odometer"/>
+                            <div name="r_check_in_odometer">
+                                <field name="r_check_in_odometer" class="oe_inline"/>
+                                <strong>&#160;/
+                                    <field name="r_odometer_unit" class="oe_inline" readonly="1"/>
+                                </strong>
+                            </div>
+                            <field name="r_last_fuel"/>
+                            <field name="r_check_in_fuel"/>
+<!--                            <field name="show_replace_invoice_button" invisible="1"/>-->
+<!--                            <button name="action_create_replace_invoice" string="Create Invoice" type="object" class="btn-primary" invisible="show_replace_invoice_button == False"/>-->
+                        </group>
+                    </group>
+
+                    <!-- إضافة زر جديد لإضافة تبديل جديد -->
+                        <button name="action_add_new_replacement" string="Add New Replacement" type="object" class="btn-secondary"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="car_replacement_view_tree_MHAZAS" model="ir.ui.view">
+        <field name="name">car replacement view tree</field>
+        <field name="model">car.replacement</field>
+        <field name="arch" type="xml">
+            <tree string="Car Replacement">
+                <field name="r_reference_no"/>
+                <field name="customer_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="car_replacement_action_window_MHAZAS">
+        <field name="name">Car Replacement</field>
+        <field name="res_model">car.replacement</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record model="ir.actions.server" id="car_replacement_action_server_MHAZAS">
+        <field name="name">Car Replacement</field>
+        <field name="model_id" ref="model_car_replacement"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+            "type": "ir.actions.act_window",
+            "view_mode": "tree,form",
+            "res_model": model._name,
+            }
+        </field>
+    </record>
+
+    <menuitem id="menu_car_replacement_MHAZAS"
+              name="Car Replacement"
+              parent="vehicle_rental.menu_vehicle_contract"
+              action="car_replacement_action_window_MHAZAS"
+              sequence="1"/>
+</odoo>

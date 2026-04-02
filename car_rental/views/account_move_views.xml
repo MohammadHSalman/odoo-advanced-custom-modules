@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- Inherit Form View to Modify it -->
+    <record id="account_move_form_view_MHAZAS" model="ir.ui.view">
+        <field name="name">account.move.form.view.MHAZAS</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="vehicle_name" readonly="1" force_save="1"/>
+                <field name="final" invisible="1"/>
+            </xpath>
+            <xpath expr="//form//sheet//notebook//page//field//tree//field[@name='quantity']" position="before">
+                <field name="product_num" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="account_move_tree_view_MHAZAS" model="ir.ui.view">
+        <field name="name">account.move.tree.view.MHAZAS</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="vehicle_contract_id" readonly="1" force_save="1"/>
+                <field name="vehicle_name" readonly="1" force_save="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

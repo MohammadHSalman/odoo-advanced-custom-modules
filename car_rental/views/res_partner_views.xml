@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <!-- Inherit Form View to Modify it -->
+        <record id="view_partner_form_inherit_MHAZAS" model="ir.ui.view">
+            <field name="name">view partner form inherit</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='vat']" position="after">
+                    <field name="passport_no" required="1"/>
+                    <field name="passport_expiry" required="1"/>
+                    <field name="driving_number" required="1"/>
+                    <field name="driver_expiry" required="1"/>
+                    <field name="nationality" options="{'no_create': True}" required="1"/>
+                    <field name="date_of_birth" required="1"/>
+                    <field name="age"/>
+                </xpath>
+                <div class="oe_button_box" name="button_box" position="inside">
+                    <button class="oe_stat_button" type="object" name="action_view_vehicle_contracts"
+                            icon="fa-file-text">
+                        <field string="Contract" name="vehicle_contract_count" widget="statinfo"/>
+
+                    </button>
+                </div>
+
+            </field>
+        </record>
+        <!-- Inherit Form View to Modify it -->
+        <record id="res_partner_form_inherit" model="ir.ui.view">
+            <field name="name">res.partner.form.inherit</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//notebook/page/field/form/sheet/group/group[1]" position="inside">
+                    <field name="passport_no" required="type == 'contact'" />
+                    <field name="passport_expiry" required="type == 'contact'"/>
+                    <field name="driving_number" required="type == 'contact'"/>
+                    <field name="driver_expiry" required="type == 'contact'"/>
+                    <field name="nationality" required="type == 'contact'"/>
+                    <field name="date_of_birth" required="type == 'contact'"/>
+                </xpath>
+
+            </field>
+        </record>
+    </data>
+</odoo>

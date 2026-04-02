@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_company_form_inherit_MHAZAS" model="ir.ui.view">
+        <field name="name">view company form inherit</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='social_media']" position="before">
+<!--                <group name="allowed_deadlines" title="Allowed deadlines">-->
+                    <setting string="Allowed deadlines Age &amp; passport &amp; Driving License">
+                        <div class="text-muted content-group mt16">
+                            <span>Minimum age in the contract</span>
+                            <field name="minimum_age" class="text-center" style="width: 10%; min-width: 4rem;"/>
+                            <span>Years</span>
+                        </div>
+                        <div class="text-muted content-group mt16">
+                            <span>Maximum age in the contract</span>
+                            <field name="maximum_age" class="text-center" style="width: 10%; min-width: 4rem;"/>
+                            <span>Years</span>
+                        </div>
+                        <div class="text-muted content-group mt16">
+                            <span>Passport deadline</span>
+                            <field name="passport_deadline" class="text-center" style="width: 10%; min-width: 4rem;"/>
+                            <span>Month</span>
+                        </div>
+                        <div class="text-muted content-group mt16">
+                            <span>Driving License deadline</span>
+                            <field name="driving_certificate_deadline" class="text-center"
+                                   style="width: 10%; min-width: 4rem;"/>
+                            <span>Month</span>
+                        </div>
+                    </setting>
+
+
+<!--                </group>-->
+                <!-- Add your fields or attributes here -->
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

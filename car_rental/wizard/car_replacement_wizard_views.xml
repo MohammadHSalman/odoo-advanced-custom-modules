@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_car_replacement_wizard_form_MHAZAS" model="ir.ui.view">
+        <field name="name">car.replacement.wizard.form</field>
+        <field name="model">car.replacement.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Car Replacement Wizard">
+                <group>
+                    <group>
+                        <field name="contract_id" invisible="1"/>
+                        <field name="vehicle_id"/>
+                        <field name="check_in_odometer"/>
+                        <field name="check_in_fuel"/>
+                        <field name="section_number"/>
+                    </group>
+                    <group>
+                        <field name="new_vehicle_id"/>
+                        <field name="check_out_odometer"/>
+                        <field name="check_out_fuel"/>
+                        <field name="section_number_new"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_apply" string="Apply" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_car_replacement" model="ir.actions.act_window">
+        <field name="name">car replacement</field>
+        <field name="res_model">car.replacement.wizard</field>
+        <field name="target">new</field>
+        <field name="view_id" ref="view_car_replacement_wizard_form_MHAZAS"/>
+    </record>
+</odoo>

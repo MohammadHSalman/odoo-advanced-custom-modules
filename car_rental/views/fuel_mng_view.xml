@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="fuel_mng_view_form_MHAZAS" model="ir.ui.view">
+        <field name="name">Fuel management view form</field>
+        <field name="model">fuel.mang</field>
+        <field name="arch" type="xml">
+            <form string="Fuel Management">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="car_category_ids"/>
+                            <field name="full_fuel"/>
+                        </group>
+                        <group>
+                            <field name="selection"/>
+                            <field name="amount_per_section" widget="monetary"
+                                   options="{'currency_field': 'currency_id'}"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="fuel_mang_view_tree_MHAZAS" model="ir.ui.view">
+        <field name="name">fuel management view tree</field>
+        <field name="model">fuel.mang</field>
+        <field name="arch" type="xml">
+            <tree string="Fuel Management">
+                <field name="car_category_ids"/>
+                <field name="full_fuel"/>
+                <field name="selection"/>
+                <field name="amount_per_section" widget="monetary"
+                       options="{'currency_field': 'currency_id', 'invisible': true}"/>
+                <field name="currency_id" invisible="1" optional="hide"/>
+
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="fuel_mang_action_window_MHAZAS">
+        <field name="name">Fuel Management</field>
+        <field name="res_model">fuel.mang</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record model="ir.actions.server" id="fuel_mang_action_server_MHAZAS">
+        <field name="name">Fuel Management</field>
+        <field name="model_id" ref="model_fuel_mang"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+            "type": "ir.actions.act_window",
+            "view_mode": "tree,form",
+            "res_model": model._name,
+            }
+        </field>
+    </record>
+
+
+    <menuitem id="menu_fuel_mang_MHAZAS"
+              name="Fuel Management"
+              parent="vehicle_rental.menu_configuration"
+              action="fuel_mang_action_window_MHAZAS"
+              sequence="1"/>
+</odoo>

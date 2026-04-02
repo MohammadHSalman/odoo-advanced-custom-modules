@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="fine_car_view_form" model="ir.ui.view">
+        <field name="name">Fine view form</field>
+        <field name="model">fine.car</field>
+        <field name="arch" type="xml">
+            <form string="Fine">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="serial_number"/>
+                            <field name="date_time"/>
+                            <field name="tor_number"/>
+                            <field name="plate_number"/>
+                            <field name="amount"/>
+                            <field name="location"/>
+                            <field name="description"/>
+                            <field name="receipt_number"/>
+                        </group>
+                        <group>
+                            <field name="offender_name"/>
+                            <field name="status"/>
+                            <field name="agreement_no"/>
+                            <field name="customer_name"/>
+                            <field name="paid_or_not_paid"/>
+                            <field name="transfer_customer"/>
+                            <field name="transfer_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="fine_car_view_tree" model="ir.ui.view">
+        <field name="name">Fine view tree</field>
+        <field name="model">fine.car</field>
+        <field name="arch" type="xml">
+            <tree string="Fine">
+                <field name="serial_number"/>
+                <field name="date_time"/>
+                <field name="tor_number"/>
+                <field name="plate_number"/>
+                <field name="amount"/>
+                <field name="location"/>
+                <field name="description"/>
+                <field name="receipt_number"/>
+                <field name="offender_name"/>
+                <field name="status"/>
+                <field name="agreement_no"/>
+                <field name="customer_name"/>
+                <field name="paid_or_not_paid"/>
+                <field name="transfer_customer"/>
+                <field name="transfer_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="fine_car_action_window">
+        <field name="name">Fine</field>
+        <field name="res_model">fine.car</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record model="ir.actions.server" id="fine_car_action_server">
+        <field name="name">Fine</field>
+        <field name="model_id" ref="model_fine_car"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+            "type": "ir.actions.act_window",
+            "view_mode": "tree,form",
+            "res_model": model._name,
+            }
+        </field>
+    </record>
+
+<!--    <menuitem id="menu_fine" name="Fine"-->
+<!--              parent="car_booking_menu" sequence="4"/>-->
+
+    <menuitem id="menu_fine_car"
+              name="Fine"
+              parent="vehicle_rental.menu_configuration"
+              action="fine_car_action_window"
+              sequence="1"/>
+</odoo>
+
+
+
+

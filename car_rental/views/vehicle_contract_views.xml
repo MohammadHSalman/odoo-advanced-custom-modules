@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <!-- Inherit Form View to Modify it -->
+        <record id="vehicle_contract_form_view_inherit_MHAZAS" model="ir.ui.view">
+            <field name="name">vehicle contract form view inherit</field>
+            <field name="model">vehicle.contract</field>
+            <field name="inherit_id" ref="vehicle_rental.vehicle_contract_form_view"/>
+            <field name="arch" type="xml">
+
+
+                <xpath expr="//sheet//group[1]//group[1]" position="inside">
+                    <field name="customer_mobile" readonly="status != 'a_draft'"/>
+                    <field name="passport_no" readonly="status != 'a_draft'"/>
+                    <field name="driving_number" readonly="status != 'a_draft'"/>
+                    <field name="nationality" options="{'no_create': True}" readonly="status != 'a_draft'"/>
+                    <field name="date_of_birth" readonly="status != 'a_draft'"/>
+                    <field name="is_reserved" readonly="status != 'a_draft'"/>
+                    <field name="with_driver" readonly="status != 'a_draft'"/>
+                </xpath>
+                <xpath expr="//sheet//group[1]//group[2]" position="inside">
+                    <field name="passport_expiry" readonly="status != 'a_draft'"/>
+                    <field name="driver_expiry" readonly="status != 'a_draft'"/>
+                    <field name="age" readonly="status != 'a_draft'"/>
+                </xpath>
+                <xpath expr="//sheet//group[1]" position="after">
+                    <group string="Additional Driver" invisible="with_driver == False">
+                        <group>
+                            <field name="additional_driver_details" readonly="status != 'a_draft'"/>
+                            <field name="additional_passport_no" readonly="status != 'a_draft'"/>
+                            <field name="additional_driving_number" readonly="status != 'a_draft'"/>
+                            <field name="additional_nationality" options="{'no_create': True}"
+                                   readonly="status != 'a_draft'"/>
+                            <field name="additional_date_of_birth" readonly="status != 'a_draft'"/>
+                        </group>
+                        <group>
+                            <field name="additional_phone" readonly="status != 'a_draft'"/>
+                            <field name="additional_email" readonly="status != 'a_draft'"/>
+                            <field name="additional_passport_expiry" readonly="status != 'a_draft'"/>
+                            <field name="additional_driver_expiry" readonly="status != 'a_draft'"/>
+                            <field name="additional_age" readonly="status != 'a_draft'"/>
+                        </group>
+                    </group>
+
+                </xpath>
+                <xpath expr="//div[@name='last_odometer']" position="after">
+                    <label for="check_in_odometer" class="mt-1" string="Check In Odometer"/>
+                    <div name="check_in_odometer">
+                        <field name="check_in_odometer" class="oe_inline" readonly="status != 'a_draft'"/>
+                        <strong>&#160;/
+                            <field name="odometer_unit" class="oe_inline" readonly="1"/>
+                        </strong>
+                    </div>
+                    <field name="last_fuel"/>
+                    <field name="check_in_fuel"/>
+
+                </xpath>
+                <xpath expr="//form/sheet/notebook/page[@name='rent_details']/group[1]/field[1]" position="after">
+                    <field name="duration_day" invisible="0"/>
+
+                </xpath>
+
+                <xpath expr="//form/sheet/notebook/page[@name='rent_details']/group[1]" position="inside">
+                    <field name="booking_type" invisible="1"/>
+                    <label for="duration_years" string="Duration"/>
+                    <div>
+                        <field name="duration_years" class="oe_inline"/>
+                        <span>Years/</span>
+                        <field name="duration_months" class="oe_inline"/>
+                        <span>Months/</span>
+                        <field name="duration_days" class="oe_inline"/>
+                        <span>Days</span>
+                    </div>
+                    <!--                    <field name="duration_years"/>-->
+                    <!--                    <field name="duration_months"/>-->
+                    <!--                    <field name="duration_days"/>-->
+                    <!--                    <field name="allowed_km_daily"/>-->
+                    <label for="allowed_km_daily" class="mt-1" string="Allowed KM Daily"/>
+                    <div name="allowed_km_daily">
+                        <field name="allowed_km_daily" class="oe_inline"/>
+                        <strong>&#160;/
+                            <field name="odometer_unit" class="oe_inline" readonly="1"/>
+                        </strong>
+                    </div>
+                    <label for="allowed_km_all" class="mt-1" string="Expected KM"/>
+                    <div name="allowed_km_all">
+                        <field name="allowed_km_all" class="oe_inline"/>
+                        <strong>&#160;/
+                            <field name="odometer_unit" class="oe_inline" readonly="1"/>
+                        </strong>
+                    </div>
+                    <field name="allowed_fuel_daily"/>
+                    <field name="allowed_fuel_all"/>
+
+                </xpath>
+                <xpath expr="//page[@name='extra_service']" position="after">
+                    <page string="Odometers"
+                          name="odometers"
+                    >
+                        <field name="odometer_ids"
+                               context="{'default_vehicle_id': vehicle_id} ">
+                            <tree editable="bottom">
+                                <field name="date"/>
+                                <field name="vehicle_id"/>
+                                <field name="out_value"/>
+                                <field name="in_value"/>
+                                <field name="remaining_km"/>
+                            </tree>
+                        </field>
+                    </page>
+                    <page string="Fuel"
+                          name="fuel"
+                    >
+                        <field name="fuel_ids"
+                               context="{'default_vehicle_id': vehicle_id} ">
+                            <tree editable="bottom">
+                                <field name="date"/>
+                                <field name="vehicle_id"/>
+                                <field name="out_value"/>
+                                <field name="in_value"/>
+                                <field name="remaining_fuel"/>
+                            </tree>
+                        </field>
+                    </page>
+                </xpath>
+                <xpath expr="//form//header" position="inside">
+                    <button name="set_to_draft" string="Set to Draft" type="object"
+                            invisible="status in ['a_draft', 'd_cancel','c_return']"/>
+                    <button string="Create Final Invoice" name="action_create_final_invoice"
+                            type="object" class="oe_highlight"
+                            invisible="status != 'c_return' or is_full_invoice_done != False"/>
+                    <button string="Create Individual Invoice" name="action_create_final_invoice"
+                            type="object" class="oe_highlight"
+                            invisible="status != 'b_in_progress' or customer_type != 'individual' or is_full_invoice_done != False"/>
+
+                    <!--                    <button string="Extra Services Invoice" name="action_create_extra_invoice"-->
+                    <!--                            type="object" class="oe_highlight"-->
+                    <!--                            invisible="status != 'c_return' or is_extra_invoice_done != False"/>-->
+
+                </xpath>
+                <xpath expr="//div[hasclass('o_address_format')]" position="after">
+                    <field name="date_of_contract" required="1" readonly="0"/>
+                    <field name="if_change_Location" readonly="account_payment_id != False" invisible="pick_up_country_id == drop_off_country_id"/>
+                    <field name="change_Location" invisible="if_change_Location == False"
+                           readonly="account_payment_id != False"/>
+                    <field name="is_change_Location" invisible="1"/>
+                    <button name="action_create_invoice_if_location_changed" string="Create Invoice" type="object" class="oe_highlight"
+                    invisible="is_change_Location == True or if_change_Location == False"/>
+                </xpath>
+                <!--                <xpath expr="//sheet//group[4]" position="after">-->
+                <!--                    <group string="Replacement Vehicle Details">-->
+                <!--                        <group>-->
+                <!--                            <field name="r_vehicle_id"-->
+                <!--                                   readonly="start_date == False or end_date == False or status != 'a_draft'"-->
+                <!--                            />-->
+                <!--                            <field name="r_license_plate" invisible="1"/>-->
+                <!--                            &lt;!&ndash;                            <field name="vehicle_ids" invisible="1"/>&ndash;&gt;-->
+                <!--                            <field name="r_model_year" readonly="1" force_save="1"/>-->
+                <!--                            <field name="r_transmission" readonly="1" force_save="1"/>-->
+                <!--                            <field name="r_fuel_type" readonly="1" force_save="1"/>-->
+                <!--                        </group>-->
+                <!--                        <group>-->
+                <!--                            <label for="r_last_odometer" class="mt-1" string="Last Odometer"/>-->
+                <!--                            <div name="r_last_odometer">-->
+                <!--                                <field name="r_last_odometer" class="oe_inline" readonly="status != 'a_draft'"/>-->
+                <!--                                <strong>&#160;/-->
+                <!--                                    <field name="r_odometer_unit" class="oe_inline" readonly="1"/>-->
+                <!--                                </strong>-->
+                <!--                            </div>-->
+                <!--                            <label for="r_check_in_odometer" class="mt-1" string="Check In Odometer"/>-->
+                <!--                            <div name="r_check_in_odometer">-->
+                <!--                                <field name="r_check_in_odometer" class="oe_inline" readonly="status != 'a_draft'"/>-->
+                <!--                                <strong>&#160;/-->
+                <!--                                    <field name="r_odometer_unit" class="oe_inline" readonly="1"/>-->
+                <!--                                </strong>-->
+                <!--                            </div>-->
+                <!--                            <field name="r_last_fuel"/>-->
+                <!--                            <field name="r_check_in_fuel"/>-->
+
+                <!--                        </group>-->
+                <!--                    </group>-->
+
+                <!--                </xpath>-->
+
+                <div class="oe_button_box" name="button_box" position="inside">
+                    <button class="oe_stat_button" type="object" name="view_car_replacement"
+                            icon="fa-exchange">
+                        <field string="Replacement" name="replacement_count" widget="statinfo"/>
+
+                    </button>
+                    <button class="oe_stat_button" type="object" name="view_final_invoice"
+                            icon="fa-sign-language">
+                        <field string="Final Invoices" name="invoice_final_count" widget="statinfo"/>
+                        <field name="invoice_id" invisible="1"/>
+                        <field name="is_full_invoice_done" invisible="1"/>
+                        <field name="is_extra_invoice_done" invisible="1"/>
+                    </button>
+                    <button class="oe_stat_button" type="object" name="view_replace_invoice"
+                            icon="fa-undo">
+                        <field string="replace Invoices" name="invoice_replace_count" widget="statinfo"/>
+                        <field name="invoice_id" invisible="1"/>
+                        <field name="is_full_invoice_done" invisible="1"/>
+                        <field name="is_extra_invoice_done" invisible="1"/>
+                    </button>
+
+                </div>
+                <xpath expr="//sheet//group[1]" position="before">
+                    <group>
+                        <field name="name"/>
+                        <field name="customer_type"/>
+                        <field name="my_company_id" invisible="customer_type == 'individual'"/>
+                    </group>
+                </xpath>
+
+
+            </field>
+        </record>
+        <record id="vehicle_contract_search_view_inherit" model="ir.ui.view">
+            <field name="name">vehicle.contract.search.view.inherit</field>
+            <field name="model">vehicle.contract</field>
+            <field name="inherit_id" ref="vehicle_rental.vehicle_contract_search_view"/>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="customer_type"/>
+                </search>
+            </field>
+        </record>
+    </data>
+</odoo>

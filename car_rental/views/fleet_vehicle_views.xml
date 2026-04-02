@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <record id="vehicle_rental_form_view_MHAZAS" model="ir.ui.view">
+            <field name="name">vehicle.rental.form.view</field>
+            <field name="model">fleet.vehicle</field>
+            <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form/sheet/group/group[2]/field[@name='location']" position="after">
+                    <field name="car_category_ids" invisible="0"/>
+
+                    <field name="manufacturer_year"/>
+                    <!--                    <field name="engine_cc"/>-->
+                    <label for="engine_cc"/>
+                    <div class="o_row">
+                        <field name="engine_cc"/>
+                        <span>CC</span>
+                    </div>
+                    <field name="engine_no"/>
+                    <field name="stock_no"/>
+                    <field name="mulkiya_expiration_date"/>
+                    <field name="insurance_contract_no"/>
+                    <field name="insurance_type" widget="selection"/>
+                    <field name="insurance_start_date"/>
+                    <field name="insurance_expiry_date"/>
+                    <!--                    <field name="regis_date"/>-->
+                    <field name="insurance_value"/>
+                    <field name="cylinder"/>
+
+                </xpath>
+                <xpath expr="//form/sheet/group/group[2]/field[@name='location']" position="before">
+                    <field name="last_fuel"/>
+                </xpath>
+                <xpath expr="//form/sheet/div[2]" position="inside">
+                    <label for="branch" class="me-3"/>
+                    <field name="branch" widget="many2many_tags" domain="[('parent_id', '!=', False)]"/>
+
+                </xpath>
+            </field>
+        </record>
+        <!-- Inherit Form View to Modify it -->
+        <record id="fleet_vehicle_view_search_inherit" model="ir.ui.view">
+            <field name="name">fleet vehicle view search inherit</field>
+            <field name="model">fleet.vehicle</field>
+            <field name="inherit_id" ref="fleet.fleet_vehicle_view_search"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//search/group/filter[@name='groupby_status']" position="before">
+                    <filter string="Branch" name="groupby_branch" context="{'group_by': 'branch'}"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+    </data>
+</odoo>

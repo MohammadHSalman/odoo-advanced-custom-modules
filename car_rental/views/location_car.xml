@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="location_car_view_form" model="ir.ui.view">
+        <field name="name">Location view form</field>
+        <field name="model">location.car</field>
+        <field name="arch" type="xml">
+            <form string="Location">
+                <sheet>
+                    <group>
+                        <field name="country_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="location_car_view_tree" model="ir.ui.view">
+        <field name="name">Location view tree</field>
+        <field name="model">location.car</field>
+        <field name="arch" type="xml">
+            <tree string="Location">
+                <field name="country_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="location_car_action_window">
+        <field name="name">Location</field>
+        <field name="res_model">location.car</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record model="ir.actions.server" id="location_car_action_server">
+        <field name="name">Location</field>
+        <field name="model_id" ref="model_location_car"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = {
+            "type": "ir.actions.act_window",
+            "view_mode": "tree,form",
+            "res_model": model._name,
+            }
+        </field>
+    </record>
+
+    <!--    <menuitem id="menu_location" name="Location"-->
+    <!--              parent="car_booking_menu" sequence="4"/>-->
+
+    <menuitem id="menu_location_car"
+              name="Location"
+              parent="vehicle_rental.menu_configuration"
+              action="location_car_action_window"
+              sequence="2"/>
+</odoo>
+
+
+
+

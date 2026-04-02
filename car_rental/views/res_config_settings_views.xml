@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="res_config_settings_view_form_MHAZAS" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.hr.fleet.MHAZAS</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="90"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form//app[@name='fleet']//block[1]" position="after">
+                        <block title="Allowed deadlines" id="allowed_deadlines">
+                            <setting string="Allowed deadlines Age &amp; passport &amp; Driving License">
+                                <div class="text-muted content-group mt16">
+                                    <span>Minimum age in the contract </span>
+                                    <field name="minimum_age" class="text-center" style="width: 10%; min-width: 4rem;" />
+                                    <span> Years</span>
+                                </div>
+                                <div class="text-muted content-group mt16">
+                                    <span>Maximum age in the contract </span>
+                                    <field name="maximum_age" class="text-center" style="width: 10%; min-width: 4rem;" />
+                                    <span> Years</span>
+                                </div>
+                                <div class="text-muted content-group mt16">
+                                    <span>Passport deadline </span>
+                                    <field name="passport_deadline" class="text-center" style="width: 10%; min-width: 4rem;" />
+                                    <span> Month</span>
+                                </div>
+                                <div class="text-muted content-group mt16">
+                                    <span>Driving License deadline </span>
+                                    <field name="driving_certificate_deadline" class="text-center" style="width: 10%; min-width: 4rem;" />
+                                    <span> Month</span>
+                                </div>
+                            </setting>
+                        </block>
+                </xpath>
+            </field>
+        </record>
+
+
+    </data>
+</odoo>
