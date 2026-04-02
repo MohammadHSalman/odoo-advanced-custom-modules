@@ -1,0 +1,17 @@
+<odoo>
+    <data>
+        <!-- Inherit Form View to Modify it -->
+        <record id="view_move_form_tabby" model="ir.ui.view">
+            <field name="name">view move form tabby</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//sheet/group/group[2]" position="inside">
+                    <field name="tabby_percentage" widget="percentage"/>
+                </xpath>
+
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.PaymentScreen" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('payment-controls')]" position="inside">
+            <div style="font-size: initial;
+                        font-style: initial;
+                        margin-top: 4%;
+                        margin-left: 0%;
+                        border-top-left-radius: 3px;
+                        border-top-right-radius: 3px;
+                        background: #6EC89B ;
+                        text-align: center;
+                        border: solid 1px #64AF8A;height: 71px;">
+                <input type="checkbox" id="checkbox_cgv" class="custom-control-input"
+                       style="margin-top: 10%;margin-left: -18%;width: 1.3em;height: 1.3em;" t-on-click="trigger('Is-Tax-Free')"></input>
+                <a style="color: white;margin-left: 18%;">Tax Free</a>
+            </div>
+        </xpath>
+    </t>
+</templates>

@@ -1,0 +1,29 @@
+<odoo>
+    <data>
+        <!-- Inherit Form View to Modify it -->
+        <record id="passport_information" model="ir.ui.view">
+            <field name="name">passport.information</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//group[@name='passport_info']" position="before">
+
+                        <group>
+                            <group>
+                                <field name="passport_barcode"/>
+                            </group>
+                            <group>
+                                <button string="Fill Information" type="object" name="passport_information"
+                                        style="background-color: green; color: white;border-radius: 5px;padding: 5px 10px;"/>
+
+                            </group>
+
+                        </group>
+
+                </xpath>
+
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="ProductScreen" t-inherit="point_of_sale.ProductScreen" t-inherit-mode="extension" owl="1">
+        <xpath expr="//div[hasclass('rightpane')]" position="inside">
+<!--            <div style="height: 20%;width: 20%;">111111111111111</div>-->
+            <div class="pads" style="display: table;border-top: solid 3px rgb(110, 200, 155);">
+                        <div class="control-buttons">
+                            <t t-if="env.isMobile and controlButtons.length > 3">
+                                <div class="control-button" t-on-click="_displayAllControlPopup">More...</div>
+                            </t>
+                            <t t-else="">
+                                <t t-foreach="controlButtons" t-as="cb" t-key="cb.name">
+                                    <t t-component="cb.component" t-key="cb.name"/>
+                                </t>
+                            </t>
+                        </div>
+                        <div class="subpads" style="display: flex;flex-direction: row;">
+                            <t t-set="_actionName">Payment</t>
+                            <ActionpadWidget client="client" actionName="_actionName" t-on-switchpane="switchPane" />
+                            <NumpadWidget activeMode="state.numpadMode" />
+                        </div>
+                    </div>
+<!--                </div>-->
+        </xpath>
+        <xpath expr="//div[hasclass('pads')]" position="attributes">
+                <attribute name="style">display: none;</attribute>
+        </xpath>
+<!--        <xpath expr="//div[hasclass('leftpane')]" position="attributes">-->
+<!--                <attribute name="style">width: 100%;</attribute>-->
+<!--        </xpath>-->
+
+    </t>
+
+
+</templates>

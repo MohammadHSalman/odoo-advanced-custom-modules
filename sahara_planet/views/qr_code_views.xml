@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <record id="invoice_inherit" model="ir.ui.view">
+            <field name="name">invoice.inherit</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='to_check']" position="after">
+                    <label for="qr_code" string="QR Code" attrs="{'invisible': [('tag_num', '=', False)]}"/>
+                    <field name="qr_code" nolabel="1" widget='image' class="qr_code_s-apps"
+                               style="height: 130px;width: 130px;" attrs="{'invisible': [('tag_num', '=', False)]}"/>
+                </xpath>
+
+            </field>
+        </record>
+    </data>
+</odoo>

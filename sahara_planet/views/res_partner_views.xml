@@ -1,0 +1,36 @@
+<odoo>
+    <data>
+        <!-- Inherit Form View to Modify it -->
+        <record id="passport_information" model="ir.ui.view">
+            <field name="name">passport.information</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//page[@name='internal_notes']" position="after">
+                    <page string="Passport Information" name="Passportinformation">
+                        <group col="2" name="passport_info">
+                            <group>
+                                <field name="code"/>
+                                <field name="firstName"/>
+                                <field name="lastName"/>
+                                <field name="gender"/>
+                                <field name="country_nationality_id"/>
+                                <field name="phoneNumber"/>
+                            </group>
+                            <group>
+                                <field name="birthDate"/>
+                                <field name="country_birth_id"/>
+                                <field name="passportNumber"/>
+                                <field name="expirationDate"/>
+                                <field name="issuedBy"/>
+                                <field name="country_residence_id"/>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+
+            </field>
+        </record>
+    </data>
+</odoo>

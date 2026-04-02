@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="custom_header_and_footer">
+            <div class="header">
+                <br/>
+                <p style="align:center; text-align: center;font-family: 'cool_font';margin-top:10px;font-size:26px;font-weight: bold;">
+                    Sahara Phone LLC
+                </p>
+                <p style="align:center; text-align: center;font-family: 'cool_font';margin-top:5px;font-size:26px;font-weight: bold;">
+                    065726634
+                </p>
+
+            </div>
+            <div class="article o_report_layout_standard">
+                <t t-out="0"/>
+            </div>
+
+
+            <div class="footer">
+
+
+            </div>
+
+        </template>
+    </data>
+</odoo>

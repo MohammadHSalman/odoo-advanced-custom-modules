@@ -1,0 +1,18 @@
+<odoo>
+    <data>
+        <!-- Inherit Form View to Modify it -->
+        <record id="field_for_connection_planet" model="ir.ui.view">
+            <field name="name">field.for.connection.planet</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="base.view_company_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='email']" position="after">
+                    <field name="client_id" groups="base.group_no_one"></field>
+                    <field name="client_secret" password="True" groups="base.group_no_one"></field>
+                </xpath>
+
+            </field>
+        </record>
+    </data>
+</odoo>

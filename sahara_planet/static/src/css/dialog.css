@@ -1,0 +1,57 @@
+.custom-dialog-class {
+    border-radius: 45px;
+    width: 550px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 140px;
+    background: #6EC89B;
+    color: wheat;
+    left: 34%;
+    top: 43%;
+    margin-top: -55px;
+
+}
+
+.custom-dialog-class .ui-dialog, .modal-dialog {
+    background: white;
+    padding: 10px;
+    border-radius: 6px;
+    border-radius: 35px;
+    nt-family: sans-serif;
+    box-shadow: 0px 10px 40px rgb(0 0 0 / 40%);
+    position: absolute;
+    top: 27%;
+    left: 30%;
+    height: 25%;
+}
+
+.custom-dialog-class .ui-dialog, .modal-dialog .modal-header {
+    text-align: center;
+    color: brown;
+}
+
+.custom-dialog-class .ui-dialog, .modal-dialog {
+    font-family: 'Lato-Bol';
+    overflow: hidden;
+}
+
+.custom-dialog-class .ui-dialog button, .modal-dialog .close {
+    visibility: hidden;
+
+}
+
+.ui-dialog button, .modal-dialog button {
+    padding: 10px;
+    min-width: 118px;
+    position: absolute;
+    left: 40%;
+    margin-top: 2px;
+    border-radius: 35px;
+    background: #e5e4e4;
+    font-family: 'Lato-Bol';
+    border: solid 1px #64AF8A;
+}
+
+
+
