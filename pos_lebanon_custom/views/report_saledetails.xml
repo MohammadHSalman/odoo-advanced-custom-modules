@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_saledetails_custom" inherit_id="point_of_sale.pos_session_sales_details">
+        <xpath expr="//div[hasclass('page')]" position="inside">
+
+            <br/><br/>
+            <h3>Currency Breakdown (Per Order)</h3>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th class="text-end">Payment Breakdown</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="orders_breakdown" t-as="order">
+                        <td><span t-esc="order['name']"/></td>
+                        <td class="text-end">
+                            <t t-foreach="order['payments']" t-as="pay">
+                                <div>
+                                    <span t-esc="pay['method']"/>: 
+                                    <strong><span t-esc="pay['amount']" t-options='{"widget": "float", "precision": 0 if pay["currency"] == "LBP" else 2}'/></strong>
+                                    <span t-esc="pay['currency']"/>
+                                </div>
+                            </t>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <br/>
+            <div style="page-break-inside: avoid;">
+                <h3>Total Cash Collected (By Currency)</h3>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Currency</th>
+                            <th class="text-end">Total Collected</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="currency_grand_totals" t-as="curr">
+                            <th><span t-esc="curr"/></th>
+                            <td class="text-end">
+                                <span t-esc="currency_grand_totals[curr]" t-options='{"widget": "float", "precision": 0 if curr == "LBP" else 2}'/>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </xpath>
+    </template>
+</odoo>

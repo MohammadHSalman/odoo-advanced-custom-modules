@@ -1,0 +1,42 @@
+<odoo>
+
+    <record id="product_category_form_brand" model="ir.ui.view">
+        <field name="name">product.category.form.brand</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="brand_id"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="product_category_tree_brand" model="ir.ui.view">
+        <field name="name">product.category.tree.brand</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_list_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='display_name']" position="after">
+                <field name="brand_id"/>
+            </xpath>
+
+        </field>
+    </record>
+    <record id="product_category_search_brand" model="ir.ui.view">
+        <field name="name">product.category.search.brand</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_search_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="brand_id"/>
+            </xpath>
+
+        </field>
+    </record>
+
+
+</odoo>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_lebanon_custom.PaymentScreenStatus" t-inherit="point_of_sale.PaymentScreenStatus" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('payment-status-remaining')]" position="inside">
+            <t t-set="secInfo" t-value="secondaryCurrencyInfo"/>
+            <t t-if="secInfo">
+                <div class="secondary-remaining" style="font-size: 0.7em; color: #28a745; margin-top:2px; font-weight:bold; border-top: 1px dashed #ccc;">
+                    Or pay: <span t-esc="secInfo.amount"/>
+                </div>
+            </t>
+        </xpath>
+    </t>
+</templates>

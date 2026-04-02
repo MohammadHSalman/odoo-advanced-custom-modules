@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="view_order_product_search_inh" model="ir.ui.view">
+        <field name="name">sale.report.search.inh</field>
+        <field name="model">sale.report</field>
+        <field name="inherit_id" ref="sale.view_order_product_search"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//search//field[@name='industry_id']" position="after">
+                <field name="brand_id"/>
+            </xpath>
+            <xpath expr="//search//group//filter[@name='Category']" position="after">
+                <filter string="Brand" name="brand" context="{'group_by':'brand_id'}"/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
