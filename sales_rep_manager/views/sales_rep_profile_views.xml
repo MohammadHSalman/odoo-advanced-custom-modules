@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_sales_rep_profile_form" model="ir.ui.view">
+        <field name="name">sales.rep.profile.form</field>
+        <field name="model">sales.rep.profile</field>
+        <field name="arch" type="xml">
+            <form string="Sales Representative Profile">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="name" readonly="1"/>
+                            <field name="company_id"/>
+                            <field name="attachment_mandatory"/>
+                            <field name="allow_usd_payment"/>
+                            <field name="allowed_distance_m"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="location_id"/>
+                            <field name="sales_team_type"/>
+                            <field name="route_id"/>
+                            <field name="operation_type_id"/>
+                        </group>
+                    </group>
+
+                    <group string="Cash Journals">
+                        <!-- نعرض التاغز، ونقيّد الاختيار بالمسموح فقط -->
+                        <field name="journal_tag_ids"
+                               widget="many2many_tags"
+                               context="{'show_currency_in_name': True}"
+                               domain="[('id','in', available_cash_journal_ids)]"
+                               options="{'no_create_edit': True}"/>
+                        <!-- المصدر الفعلي يبقى مخفيًا -->
+                        <field name="journal_map_ids" invisible="1" context="{'default_profile_id': id}"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_sales_rep_profile_list" model="ir.ui.view">
+        <field name="name">sales.rep.profile.list</field>
+        <field name="model">sales.rep.profile</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="location_id"/>
+                <field name="sales_team_type"/>
+                <field name="company_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_sales_rep_profile" model="ir.actions.act_window">
+        <field name="name">Sales Rep Profiles</field>
+        <field name="res_model">sales.rep.profile</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('company_id', 'in', allowed_company_ids)]</field>
+    </record>
+
+    <menuitem id="menu_sales_rep_profile" name="Profiles" parent="menu_route_root"
+              action="action_sales_rep_profile" sequence="0"/>
+
+</odoo>

@@ -1,0 +1,11 @@
+<odoo>
+    <data noupdate="1">
+        <record id="seq_sales_rep_profile" model="ir.sequence">
+            <field name="name">Sales Representative Profile</field>
+            <field name="code">sales.rep.profile</field>
+            <field name="prefix">S</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

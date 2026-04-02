@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="custom_reset_password_email" inherit_id="auth_signup.reset_password_email">
+        <!-- استهداف div الذي يحتوي على زر تغيير كلمة المرور -->
+        <xpath expr="//tbody//tr//td//table//tr//div" position="replace">
+            <div>
+                Dear <t t-out="object.name or ''">Marc Demo</t>,
+                <br/>
+                <br/>
+                We received a request to reset the password for your Odoo account linked to this email.
+                <br/>
+                <br/>
+                To complete the process, please use the verification code below. This code is valid for <strong>5
+                minutes
+            </strong> only:
+                <div style="margin: 16px 0px 16px 0px;">
+                    <h2 style="color:#3c8dbc;">Your verification code:
+                        <strong>
+                            <t t-out="object.password_reset_code or ''"/>
+                        </strong>
+                    </h2>
+                </div>
+                If you did not request a password reset, you can safely ignore this email. No changes will be made to
+                your account.
+                <br/>
+                <br/>
+                Best regards,
+                <br/>
+                <t t-if="user.signature">
+                    <t t-out="user.signature">--<br/>Mitchell Admin
+                    </t>
+                </t>
+            </div>
+
+        </xpath>
+    </template>
+</odoo>

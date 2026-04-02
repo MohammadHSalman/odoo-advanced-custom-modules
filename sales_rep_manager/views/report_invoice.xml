@@ -1,0 +1,11 @@
+<odoo>
+    <record id="action_custom_invoice_report" model="ir.actions.report">
+        <field name="name">NAD Invoice</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sales_rep_manager.invoice_template</field>
+        <field name="report_file">sales_rep_manager.invoice_template</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

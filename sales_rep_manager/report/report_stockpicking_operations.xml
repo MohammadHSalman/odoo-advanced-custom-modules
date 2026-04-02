@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="report_picking_inherit_remove_barcode"
+              inherit_id="stock.report_picking">
+
+        <xpath expr="//th[@name='th_barcode']" position="replace">
+        </xpath>
+
+        <xpath expr="//td[hasclass('text-center')][last()]" position="replace">
+        </xpath>
+
+        <xpath expr="//t[@t-set='has_barcode']" position="replace">
+        </xpath>
+
+    </template>
+</odoo>

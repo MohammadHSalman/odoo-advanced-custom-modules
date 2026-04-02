@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_order_form_inh" model="ir.ui.view">
+        <field name="name">view_order_form_inh</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- تبويب جديد بعد تبويب سطور الطلب -->
+            <xpath expr="//page[@name='order_lines']" position="after">
+                <page name="msl_results" string="MSL (Must-Selling)">
+                    <!-- لا context ولا mode -->
+                    <field name="msl_result_ids">
+                        <list string="MSL Results" editable="bottom">
+                            <field name="product_id"/>
+                            <!--              <field name="categ_id"/>-->
+                            <field name="status"/>
+                            <!--              <field name="note"/>-->
+                        </list>
+                        <form string="MSL Line">
+                            <group>
+                                <group>
+                                    <field name="product_id"/>
+                                    <!--                  <field name="categ_id"/>-->
+                                </group>
+                                <group>
+                                    <field name="status"/>
+                                    <!--                  <field name="note"/>-->
+                                </group>
+                            </group>
+                        </form>
+                    </field>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_move_form_inherit" model="ir.ui.view">
+        <field name="name">view move form inherit</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_date']" position="after">
+                <field name="mobile_invoice_number" readonly="0"/>
+                <field name="qr_code_image" invisible="1"/>
+            </xpath>
+            <xpath expr="//page[@name='other_info']//group//group//field[@name='invoice_user_id']" position="replace">
+                <field name="invoice_user_id" widget="many2one_avatar_user"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_invoice_tree_inherit" model="ir.ui.view">
+        <field name="name">view invoice tree inherit</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_out_invoice_tree"/>
+        <field name="arch" type="xml">
+            <field name="status_in_payment" position="before">
+                <field name="mobile_invoice_number"/>
+            </field>
+
+        </field>
+    </record>
+
+</odoo>

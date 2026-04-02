@@ -1,0 +1,66 @@
+<odoo>
+    <record id="view_route_line_form" model="ir.ui.view">
+        <field name="name">route.line.form</field>
+        <field name="model">route.line</field>
+        <field name="arch" type="xml">
+            <form string="Route Line">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="route_name" placeholder="Route Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="route_number"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="country_id" options="{'no_create': True}"/>
+                            <field name="governorate_id" options="{'no_create': True}"/>
+                            <field name="area_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="sales_channel_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Customers">
+                            <field name="partner_ids">
+                                <list string="Customers">
+                                    <field name="name"/>
+                                    <field name="phone"/>
+                                    <field name="street"/>
+                                    <field name="street2"/>
+                                    <field name="city"/>
+                                    <field name="state_id"/>
+                                    <field name="ref"/>
+                                    <field name="industry_id"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_route_line_list" model="ir.ui.view">
+        <field name="name">route.line.list</field>
+        <field name="model">route.line</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="route_number"/>
+                <field name="route_name"/>
+                <field name="governorate_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_route_line" model="ir.actions.act_window">
+        <field name="name">Route Lines</field>
+        <field name="res_model">route.line</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_route_root" name="Sales Representative"/>
+    <menuitem id="menu_route_line" name="Route Lines" parent="menu_route_root" action="action_route_line" sequence="1"/>
+</odoo>

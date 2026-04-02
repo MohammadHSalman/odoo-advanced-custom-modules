@@ -1,0 +1,22 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+
+access_route_line_user,route.line user,model_route_line,sales_rep_user,1,0,0,0
+access_route_line_manager,route.line manager,model_route_line,sales_rep_manager,1,1,1,1
+
+access_sales_rep_profile_user,sales.rep.profile user,model_sales_rep_profile,sales_rep_user,1,0,0,0
+access_sales_rep_profile_manager,sales.rep.profile manager,model_sales_rep_profile,sales_rep_manager,1,1,1,1
+
+access_sales_rep_cash_journal_map_user,cash journal map user,model_sales_rep_cash_journal_map,sales_rep_user,1,0,0,0
+access_sales_rep_cash_journal_map_manager,cash journal map manager,model_sales_rep_cash_journal_map,sales_rep_manager,1,1,1,1
+
+access_sale_order_msl_line_user,msl line user,model_sale_order_msl_line,sales_rep_user,1,0,0,0
+access_sale_order_msl_line_manager,msl line manager,model_sale_order_msl_line,sales_rep_manager,1,1,1,1
+
+access_route_line_import_wizard_user,route.line import wizard user,model_route_line_import_wizard,sales_rep_user,1,0,0,0
+access_route_line_import_wizard_manager,route.line import wizard manager,model_route_line_import_wizard,sales_rep_manager,1,1,1,1
+
+access_route_line_import_ref_wizard_user,route.line.import.ref.wizard.user,model_route_line_import_ref_wizard,sales_rep_user,1,1,1,1
+access_route_line_import_ref_wizard_manager,route.line.import.ref.wizard.manager,model_route_line_import_ref_wizard,sales_rep_manager,1,1,1,1
+
+access_cashvan_invoice_log_user,cashvan invoice log user,model_cashvan_invoice_log,sales_rep_user,1,0,0,0
+access_cashvan_invoice_log_manager,cashvan invoice log manager,model_cashvan_invoice_log,sales_rep_manager,1,1,1,1

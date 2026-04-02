@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="external_layout_nad">
+        <t t-if="not o" t-set="o" t-value="doc"/>
+
+        <t t-if="not company">
+            <t t-if="company_id">
+                <t t-set="company" t-value="company_id"/>
+            </t>
+            <t t-elif="o and 'company_id' in o and o.company_id.sudo()">
+                <t t-set="company" t-value="o.company_id.sudo()"/>
+            </t>
+            <t t-else="else">
+                <t t-set="company" t-value="res_company"/>
+            </t>
+        </t>
+
+        <t t-call="sales_rep_manager.custom_invoice_layout_nad">
+            <t t-out="0"/>
+        </t>
+    </template>
+
+    <template id="custom_invoice_layout_nad">
+        <t t-set="forced_company" t-value="o.env['res.company'].browse(1)"/>
+
+        <div class="header">
+            <div class="row" dir="ltr">
+                <div class="col-4" style="text-align: left;">
+                    <img t-if="o.qr_code_image"
+                         t-att-src="image_data_uri(o.qr_code_image)"
+                         style="width:100px; height:100px; padding:0; margin:0; display:block;"/>
+                </div>
+
+                <div class="col-8"
+                     style="font-family: 'Tajawal', sans-serif; font-size: 12px; line-height: 1.6; text-align: right; direction: rtl; padding-right: 0px;">
+
+                    <div style="margin-top: 0;">
+                        <span style="font-weight: bold;">اسم الشركة:</span>
+                        <span t-esc="forced_company.name" class="bold"
+                              style="font-size: 14px; font-weight: bold; margin-right: 5px;"/>
+                    </div>
+
+                    <div>
+                        <span>الرقم الضريبي:</span>
+                        <span t-esc="forced_company.vat" style="margin-right: 5px;"/>
+                    </div>
+
+                    <div>
+                        <span>الهاتف:</span>
+                        <span t-esc="forced_company.phone" style="margin-right: 5px;"/>
+                    </div>
+
+                    <div>
+                        <span>رقم نسخة البرنامج:</span>
+                        <span style="margin-right: 5px;">Odoo18-Sapps</span>
+                    </div>
+
+                </div>
+            </div>
+            <div style="border-bottom: 2px solid #000; margin-top: 10px;"/>
+        </div>
+
+        <div class="article o_report_layout_standard" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id">
+            <t t-out="0"/>
+        </div>
+
+        <div class="footer o_standard_footer">
+            <div style="border-top: 1px solid #000; padding-top: 5px; width: 100%;">
+                <div class="row" dir="ltr" style="font-size: 12px; font-family: 'Tajawal', sans-serif; color: #000;">
+
+                    <div class="col-6" style="text-align: left;">
+                        Page
+                        <span class="page"/>
+                        /
+                        <span class="topage"/>
+                    </div>
+
+                    <div class="col-6"
+                         style="text-align: right; padding-right: 0; font-family: 'Tajawal', sans-serif; direction: rtl;">
+                        <div>شركة الموزعون المتحدون الحديثة - محدودة المسؤولية</div>
+
+                        <div t-if="forced_company.company_registry" style="margin-top: 2px;">
+                            <span>سجل تجاري:</span>
+                            <span t-esc="forced_company.company_registry"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template id="invoice_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="sales_rep_manager.external_layout_nad">
+
+                    <style>
+                        body { font-family: 'Tajawal', 'Arial', sans-serif; font-size: 11px; color: #000; }
+
+                        .table-custom { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+                        .table-custom td, .table-custom th { border: 1px solid #444; padding: 4px; vertical-align:
+                        middle; text-align: center; }
+
+                        .bg-gray { background-color: #d9d9d9; font-weight: bold; }
+                        .bold { font-weight: bold; }
+                        .text-right { text-align: right; }
+                        .text-left { text-align: left; }
+                        .text-center { text-align: center; }
+
+                        .page {
+                        padding-bottom: 50px;
+                        direction: ltr;
+                        }
+                    </style>
+
+                    <div class="page">
+
+                        <div class="text-center bold" style="margin-bottom: 15px;">
+                            Sales Invoice / مبيعات
+                            <span t-field="o.company_id.name"/>
+                            <div style="border-bottom: 1px dotted #000; width: 100%; margin-top: 5px;"></div>
+                        </div>
+
+                        <table class="table-custom">
+                            <tr>
+                                <td class="bg-gray text-left" width="15%">Invoice Number</td>
+                                <td class="text-center bold" width="18%">
+                                    <span t-field="o.name"/>
+                                </td>
+                                <td class="bg-gray text-right" width="17%">:رقم الفاتورة</td>
+
+                                <td class="bg-gray text-left" width="15%">Customer:</td>
+                                <td class="text-center" width="20%">
+                                    <span t-field="o.partner_id.name"/>
+                                </td>
+                                <td class="bg-gray text-right" width="15%">:العميل</td>
+                            </tr>
+                            <tr>
+                                <td class="bg-gray text-left">Invoice Issue Date</td>
+                                <td>
+                                    <span t-field="o.invoice_date"/>
+                                </td>
+                                <td class="bg-gray text-right">:تاريخ إصدار الفاتورة</td>
+
+                                <td class="bg-gray text-left">Address:</td>
+                                <td style="font-size:9px;">
+                                    <span t-field="o.partner_id.contact_address"/>
+                                </td>
+                                <td class="bg-gray text-right">:العنوان</td>
+                            </tr>
+                            <tr>
+                                <td class="bg-gray text-left">Date of Sending</td>
+                                <td>
+                                    <span t-field="o.invoice_date_due"/>
+                                    <br/>
+                                    <span style="font-size:9px;">11:00:05</span>
+                                </td>
+                                <td class="bg-gray text-right">:تاريخ الإرسال</td>
+
+                                <td class="bg-gray text-left">Tax No.</td>
+                                <td>
+                                    <span t-field="o.partner_id.vat"/>
+                                </td>
+                                <td class="bg-gray text-right">:الرقم الضريبي</td>
+                            </tr>
+                            <tr>
+                                <td class="bg-gray text-left">Pay Type:</td>
+                                <td>
+                                    <span t-if="o.invoice_date_due and o.invoice_date_due &gt; o.invoice_date">آجل
+                                    </span>
+                                    <span t-else="">نقدي</span>
+                                </td>
+                                <td class="bg-gray text-right">:طريقة الدفع</td>
+
+                                <td class="bg-gray text-left">Tel:</td>
+                                <td>
+                                    <span t-field="o.partner_id.phone"/>
+                                </td>
+                                <td class="bg-gray text-right">:جوال الزبون</td>
+                            </tr>
+                            <tr>
+                                <td class="bg-gray text-left">Mobile Invoice No.</td>
+                                <td>
+                                    <t t-if="o.mobile_invoice_number">
+                                        <t t-esc="o.mobile_invoice_number"/>
+                                    </t>
+                                    <t t-else="">-</t>
+                                </td>
+                                <td class="bg-gray text-right">:رقم فاتورة الموبايل</td>
+                                <td colspan="3" style="background-color: #f2f2f2; border:none;"></td>
+                            </tr>
+                        </table>
+
+                        <div style="background-color: #d9d9d9; border: 1px solid #444; border-bottom: none; padding: 2px 5px; font-weight: bold; font-size: 10px; margin-top: 10px;">
+                            Line Items
+                            <span style="float: right;">توصيف السلعة والخدمة</span>
+                        </div>
+
+                        <table class="table-custom" style="margin-top: 0px;">
+                            <thead>
+                                <tr class="bg-gray">
+                                    <th style="width: 30%;">Nature of goods<br/>تفاصيل الأصناف
+                                    </th>
+                                    <th>consumer price<br/>سعر المستهلك
+                                    </th>
+                                    <th>Unit price<br/>سعر الوحدة
+                                    </th>
+                                    <th>Selling Price SPO<br/>سعر مبيع ل.س.ق
+                                    </th>
+                                    <th>Quantity<br/>الكمية
+                                    </th>
+                                    <th>Unit<br/>الوحدة
+                                    </th>
+                                    <th>Gifts<br/>الهدايا
+                                    </th>
+                                    <th>Discount<br/>الخصم (%)
+                                    </th>
+                                    <th>Item Subtotal<br/>المجموع
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-set="gross_total" t-value="0"/>
+                                <tr t-foreach="o.invoice_line_ids" t-as="line">
+                                    <t t-set="is_gift" t-value="line.price_subtotal == 0"/>
+                                    <td class="text-left" style="padding-left: 5px;">
+                                        <span t-field="line.product_id.name"/>
+                                        <t t-if="is_gift">
+                                            <br/>
+                                            <span style="color: #d9534f; font-size: 9px;">(هدية مجانية)</span>
+                                        </t>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.product_id.consumer_price"
+                                              t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.price_unit"
+                                              t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                    <td>
+                                        <span t-esc="line.price_unit * 100"
+                                              t-options="{&quot;widget&quot;: &quot;float&quot;, &quot;precision&quot;: 2}"/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.quantity" t-options='{"widget": "float", "precision": 0}'/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.product_uom_id.name"/>
+                                    </td>
+                                    <td style="font-size: 14px;">
+                                        <t t-if="is_gift">
+                                            <span class="fa fa-check" style="color: green;"></span>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="fa fa-times" style="color: red;"></span>
+                                        </t>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.discount" t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                    <td>
+                                        <span t-field="line.price_subtotal"
+                                              t-options='{"widget": "float", "precision": 2}'/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <t t-set="custom_total_gross" t-value="0"/>
+                        <t t-set="custom_total_discount" t-value="0"/>
+
+                        <t t-foreach="o.invoice_line_ids" t-as="line">
+
+                            <t t-if="line.price_unit &gt; 0">
+                                <t t-set="line_gross" t-value="line.quantity * line.price_unit"/>
+                                <t t-set="custom_total_gross" t-value="custom_total_gross + line_gross"/>
+
+                                <t t-if="line.discount">
+                                    <t t-set="line_disc_amt" t-value="line_gross * (line.discount / 100.0)"/>
+                                    <t t-set="custom_total_discount" t-value="custom_total_discount + line_disc_amt"/>
+                                </t>
+                            </t>
+
+                            <t t-if="line.price_unit &lt; 0">
+                                <t t-set="custom_total_discount"
+                                   t-value="custom_total_discount + (line.price_subtotal * -1)"/>
+                            </t>
+
+                        </t>
+
+                        <div style="background-color: #999; border: 1px solid #444; padding: 2px 5px; font-weight: bold; font-size: 11px; margin-top: 10px; display: flex; justify-content: space-between;">
+                            <span>Amount Details :</span>
+                            <span>تفصيل مبالغ الفاتورة</span>
+                        </div>
+
+                        <table class="table-custom" style="margin-top: 2px;">
+                            <tr>
+                                <td class="bold text-left bg-gray" width="25%">Total</td>
+                                <td class="bold text-center bg-gray">الإجمالي</td>
+                                <td class="bold text-center" width="25%" style="padding: 0; vertical-align: middle;">
+                                    <table style="direction: ltr; width: 100%; border-collapse: collapse; margin: 0; border: 0px solid transparent !important;">
+                                        <tr style="border: 0px solid transparent !important;">
+                                            <td style="border: 0px solid transparent !important; width: 40%; text-align: right; padding-right: 4px; vertical-align: middle;">
+                                                <span t-field="o.currency_id.symbol"/>
+                                            </td>
+                                            <td style="border: 0px solid transparent !important; width: 60%; text-align: left; padding-left: 0px; vertical-align: middle;">
+                                                <span t-esc="custom_total_gross"
+                                                      t-options='{"widget": "float", "precision": 2}'/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="bold text-left bg-gray">Discount</td>
+                                <td class="bold text-center bg-gray">مجموع الحسومات</td>
+                                <td class="text-center" style="padding: 0; vertical-align: middle;">
+                                    <table style="direction: ltr; width: 100%; border-collapse: collapse; margin: 0; border: 0px solid transparent !important;">
+                                        <tr style="border: 0px solid transparent !important;">
+                                            <td style="border: 0px solid transparent !important; width: 40%; text-align: right; padding-right: 4px; vertical-align: middle;">
+                                                <span t-field="o.currency_id.symbol"/>
+                                            </td>
+                                            <td style="border: 0px solid transparent !important; width: 60%; text-align: left; padding-left: 0px; vertical-align: middle;">
+                                                <span t-esc="custom_total_discount"
+                                                      t-options='{"widget": "float", "precision": 2}'/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="bold text-left bg-gray">Total Amount Due</td>
+                                <td class="bold text-center bg-gray">إجمالي المبلغ المستحق</td>
+                                <td class="bold text-center" style="padding: 0; vertical-align: middle;">
+                                    <table style="direction: ltr; width: 100%; border-collapse: collapse; margin: 0; border: 0px solid transparent !important;">
+                                        <tr style="border: 0px solid transparent !important;">
+                                            <td style="border: 0px solid transparent !important; width: 40%; text-align: right; padding-right: 4px; vertical-align: middle;">
+                                                <span t-field="o.currency_id.symbol"/>
+                                            </td>
+                                            <td style="border: 0px solid transparent !important; width: 60%; text-align: left; padding-left: 0px; vertical-align: middle;">
+                                                <span t-field="o.amount_total"
+                                                      t-options='{"widget": "float", "precision": 2}'/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="bold text-left bg-gray">Net SPO</td>
+                                <td class="bold text-center bg-gray">الصافي ل.س.ق</td>
+                                <td class="bold text-center" style="padding: 0; vertical-align: middle;">
+                                    <table style="direction: ltr; width: 100%; border-collapse: collapse; margin: 0; border: 0px solid transparent !important;">
+                                        <tr style="border: 0px solid transparent !important;">
+                                            <td style="border: 0px solid transparent !important; width: 40%; text-align: right; padding-right: 4px; vertical-align: middle;">
+                                                <span t-field="o.currency_id.symbol"/>
+                                            </td>
+                                            <td style="border: 0px solid transparent !important; width: 60%; text-align: left; padding-left: 0px; vertical-align: middle;">
+                                                <span t-esc="o.amount_total * 100"
+                                                      t-options='{"widget": "float", "precision": 2}'/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="bold text-left bg-gray">Total Amount Due In Words</td>
+                                <td class="bold text-center bg-gray">تفقـيـط المبلغ المستحق</td>
+                                <td class="text-right" style="font-size: 10px; padding-right: 5px;">
+                                    فقط
+                                    <span t-esc="o.currency_id.with_context(lang='ar_001').amount_to_text(o.amount_total)"/>
+                                    لا غير
+                                </td>
+                            </tr>
+                        </table>
+                        <div style="border: 1px solid #444; padding: 8px; text-align: center; font-weight: bold; margin-top: 15px; background-color: #f9f9f9;">
+                            صفة البيع من تاجر جملة إلى تاجر جملة - نصف جملة - مفرق
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
