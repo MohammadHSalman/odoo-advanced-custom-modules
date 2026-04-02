@@ -1,0 +1,951 @@
+The following is a digest of the repository "mhd_shipment_survey".
+This digest is designed to be easily parsed by Large Language Models.
+
+--- SUMMARY ---
+Repository: mhd_shipment_survey
+Files Analyzed: 11
+Total Text Size: 39.01 KB
+Estimated Tokens (text only): ~8,664
+
+--- DIRECTORY STRUCTURE ---
+mhd_shipment_survey/
+├── models/
+│   ├── __init__.py
+│   ├── freshchat_connector.py
+│   └── shipment_survey.py
+├── views/
+│   ├── driver_survey_report_wizard_views.xml
+│   ├── shipment_order_views.xml
+│   └── shipment_survey_history_views.xml
+├── wizard/
+│   ├── __init__.py
+│   ├── driver_survey_graph_wizard_views.xml
+│   └── driver_survey_report_wizard.py
+├── __init__.py
+└── __manifest__.py
+
+
+--- FILE CONTENTS ---
+============================================================
+FILE: models/__init__.py
+============================================================
+from . import shipment_survey
+from . import freshchat_connector
+
+
+============================================================
+FILE: models/freshchat_connector.py
+============================================================
+# داخل odx_freshchat_connector/models/odx_freshchat_connector.py
+from odoo import api, fields, models, _
+
+class FreshchatConnector(models.Model):
+    _inherit = "odx.freshchat.connector"
+
+    # الإعدادات الافتراضية لإرسال استبيان الشحن عبر واتساب
+    survey_id = fields.Many2one(
+        "survey.survey",
+        string="Default Survey for Shipments",
+        tracking=True,
+        help="The survey that will be used by default when shipments are delivered."
+    )
+    whatsapp_template_id = fields.Many2one(
+        "odx.whatsapp.template",
+        string="Default WhatsApp Template (Survey)",
+        tracking=True,
+        help="The WhatsApp template used to push the survey link to the customer."
+    )
+
+    def get_active_connector(self):
+        """أقرب كونّكتور فعّال نستخدمه كإعداد عام."""
+        return self.search([("active", "=", True)], limit=1)
+
+
+============================================================
+FILE: models/shipment_survey.py
+============================================================
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError, ValidationError
+import re
+import json
+
+class SurveyUserInputLine(models.Model):
+    _inherit = "survey.user_input.line"
+
+    # اجعل الحقل مخزّن ليستفيد منه read_group/graph
+    answer_yesno = fields.Selection(
+        [("yes", "Yes"), ("no", "No"), ("other", "Other/Skipped")],
+        string="Yes/No (Normalized)",
+        compute="_compute_answer_yesno",
+        store=True,           # <-- مهم
+        index=True,
+    )
+
+    def _compute_answer_yesno(self):
+        YES = {"yes", "نعم", "اي", "ايه", "ايوا", "ايوه", "yaa", "ok"}
+        NO  = {"no", "لا", "لاء", "nope"}
+        for line in self:
+            txt = (line.display_name or "").strip().lower()
+            if txt in YES:
+                line.answer_yesno = "yes"
+            elif txt in NO:
+                line.answer_yesno = "no"
+            else:
+                line.answer_yesno = "other"
+# =========================
+# 1) Shipment Survey History
+# =========================
+class ShipmentSurveyHistory(models.Model):
+    _name = "shipment.survey.history"
+    _description = "Shipment Survey History"
+    _order = "create_date desc"
+    _rec_name = "shipment_id"
+
+    shipment_id = fields.Many2one("shipment.order", required=True, index=True, ondelete="cascade")
+    partner_id = fields.Char(related="shipment_id.first_name")
+    phone = fields.Char()
+    channel = fields.Selection(
+        [("whatsapp", "WhatsApp")],
+        default="whatsapp",
+        required=True
+    )
+    template_id = fields.Many2one("odx.whatsapp.template", string="WhatsApp Template")
+    url = fields.Char()
+    status = fields.Selection(
+        [("sent", "Sent"), ("failed", "Failed"), ("completed", "Completed")],
+        default="sent",
+        required=True
+    )
+    message = fields.Text()
+    message_sid = fields.Char()
+    error = fields.Text()
+    answer_id = fields.Many2one("survey.user_input", string="Survey Answer")
+    sent_at = fields.Datetime(default=fields.Datetime.now)
+    completed_at = fields.Datetime()
+
+    # NEW: حفظ السائق الذي كانت عليه الشحنة لحظة الإرسال/الاكتمال
+    delivery_boy_partner_id = fields.Many2one(
+        "res.partner",
+        string="Driver",
+        help="The delivery boy linked to the shipment at the time of sending/completion."
+    )
+    answer_id = fields.Many2one("survey.user_input", string="Survey Answer")
+
+    # NEW: اعرض سطور الإجابات نفسها (مرتبطة مباشرة بإجابة هذا السجل)
+    answer_line_ids = fields.One2many(
+        comodel_name="survey.user_input.line",
+        inverse_name="user_input_id",
+        string="Answers",
+        related="answer_id.user_input_line_ids",
+        readonly=True,
+    )
+
+
+# =========================
+# 2) Survey User Input (link to shipment + capture completion)
+# =========================
+class SurveyUserInput(models.Model):
+    _inherit = "survey.user_input"
+
+    # ربط الإجابة بالشحنة
+    shipment_id = fields.Many2one("shipment.order", index=True, ondelete="cascade")
+
+    def write(self, vals):
+        """عند انتقال حالة الإجابة إلى 'done' (أو 'completed' لو لديك تخصيص)،
+        حدّث سجلات الـ History المرتبطة لتصبح 'completed' واحفظ السائق."""
+        res = super().write(vals)
+
+        state_now = vals.get("state")
+        if state_now in ("done", "completed"):
+            History = self.env["shipment.survey.history"].sudo()
+            now_dt = fields.Datetime.now()
+
+            for ans in self:
+                # استحضار السائق من الشحنة إن وُجد
+                driver_id = False
+                if ans.shipment_id:
+                    driver_id = getattr(ans.shipment_id, "delivery_boy_partner_id", False)
+                    driver_id = driver_id.id if driver_id else False
+
+                histories = History.search([("answer_id", "=", ans.id)])
+                if histories:
+                    histories.write({
+                        "status": "completed",
+                        "completed_at": now_dt,
+                        "delivery_boy_partner_id": driver_id,
+                    })
+                else:
+                    # في حال عدم وجود سجل إرسال سابق (نادرًا)، ننشئ سجلّ اكتمال مباشرة:
+                    History.create({
+                        "shipment_id": ans.shipment_id.id if ans.shipment_id else False,
+                        "partner_id": ans.shipment_id.partner_id.id if (ans.shipment_id and ans.shipment_id.partner_id) else False,
+                        "phone": (ans.shipment_id.mobile or ans.shipment_id.phone) if ans.shipment_id else False,
+                        "channel": "whatsapp",
+                        "template_id": False,
+                        "url": False,
+                        "status": "completed",
+                        "message": _("Survey completed by customer."),
+                        "message_sid": False,
+                        "error": False,
+                        "answer_id": ans.id,
+                        "completed_at": now_dt,
+                        "delivery_boy_partner_id": driver_id,
+                    })
+
+                # تدوينة في الشحنة (اختياري)
+                if ans.shipment_id:
+                    driver_name = "-"
+                    if driver_id:
+                        driver_name = ans.shipment_id.delivery_boy_partner_id.display_name
+                    ans.shipment_id.message_post(
+                        body=_("Survey marked as <b>Completed</b>. Driver: %s") % driver_name
+                    )
+
+        return res
+
+
+# =========================
+# 3) Shipment Order (defaults, sending, history, smart button)
+# =========================
+class ShipmentOrder(models.Model):
+    _inherit = "shipment.order"
+
+    # -----------------------------
+    # جلب الديفولت من الكونّكتور
+    # -----------------------------
+    def _get_default_whatsapp_template_id(self):
+        connector = self.env["odx.freshchat.connector"].sudo().search([("active", "=", True)], limit=1)
+        return connector.whatsapp_template_id.id if connector and connector.whatsapp_template_id else False
+
+    def _get_default_survey_id(self):
+        connector = self.env["odx.freshchat.connector"].sudo().search([("active", "=", True)], limit=1)
+        return connector.survey_id.id if connector and connector.survey_id else False
+
+    # -----------------------------
+    # حقول الاستبيان على الشحنة
+    # -----------------------------
+    survey_id = fields.Many2one(
+        "survey.survey",
+        string="Survey",
+        default=_get_default_survey_id,
+        readonly=False,
+    )
+    survey_sent = fields.Boolean(string="Survey Sent", default=False, readonly=True)
+    survey_answer_id = fields.Many2one("survey.user_input", string="Survey Answer", readonly=True)
+    survey_url = fields.Char(string="Survey URL")
+    whatsapp_template_id = fields.Many2one(
+        "odx.whatsapp.template",
+        string="WhatsApp Template (Survey)",
+        default=_get_default_whatsapp_template_id,
+        help="Template used to send the survey link to the customer.",
+        readonly=False,
+    )
+
+    # تاريخ الاستبيانات (One2many)
+    survey_history_ids = fields.One2many(
+        "shipment.survey.history", "shipment_id", string="Survey History"
+    )
+
+    # عدّاد + زر ذكي
+    survey_history_count = fields.Integer(
+        string="Surveys",
+        compute="_compute_survey_history_count",
+        store=False,
+    )
+
+    def _compute_survey_history_count(self):
+        for rec in self:
+            rec.survey_history_count = len(rec.survey_history_ids)
+
+    def action_open_survey_history(self):
+        self.ensure_one()
+        return {
+            "name": _("Survey History"),
+            "type": "ir.actions.act_window",
+            "res_model": "shipment.survey.history",
+            "view_mode": "tree,form",
+            "domain": [("shipment_id", "=", self.id)],
+            "context": {"default_shipment_id": self.id},
+            "target": "current",
+        }
+
+    # -----------------------------
+    # Helpers
+    # -----------------------------
+    def _absolute_url(self, relative):
+        base = self.env["ir.config_parameter"].sudo().get_param("web.base.url", "")
+        if relative and not relative.startswith(("http://", "https://")):
+            return (base.rstrip("/") + "/" + relative.lstrip("/")) if base else relative
+        return relative
+
+    # -----------------------------
+    # create: ملء الديفولت من الكونّكتور
+    # -----------------------------
+    @api.model
+    def create(self, vals):
+        if not vals.get("whatsapp_template_id"):
+            t_id = self._get_default_whatsapp_template_id()
+            if t_id:
+                vals["whatsapp_template_id"] = t_id
+        if not vals.get("survey_id"):
+            s_id = self._get_default_survey_id()
+            if s_id:
+                vals["survey_id"] = s_id
+        return super().create(vals)
+
+    # -----------------------------
+    # write: عند التسليم/الإنهاء أرسل الاستبيان وسجّل التاريخ
+    # -----------------------------
+    def write(self, vals):
+        state_will_change = "state" in vals
+        new_state = (vals.get("state") or "").lower() if state_will_change else False
+
+        # تصحيح ذاتي للسجلات القديمة (يملأ الديفولت من الكونّكتور)
+        for rec in self:
+            to_fix = {}
+            if not (vals.get("whatsapp_template_id") or rec.whatsapp_template_id):
+                t_id = rec._get_default_whatsapp_template_id()
+                if t_id:
+                    to_fix["whatsapp_template_id"] = t_id
+            if not (vals.get("survey_id") or rec.survey_id):
+                s_id = rec._get_default_survey_id()
+                if s_id:
+                    to_fix["survey_id"] = s_id
+            if to_fix:
+                super(ShipmentOrder, rec).write(to_fix)
+
+        res = super().write(vals)
+
+        # عند الوصول إلى حالة التسليم/الإنهاء، حضّر وأرسل رابط الاستبيان عبر الواتساب
+        if state_will_change and new_state in ("delivered", "done"):
+            for rec in self:
+                connector = rec.env["odx.freshchat.connector"].sudo().search([("active", "=", True)], limit=1)
+                survey = rec.survey_id or (connector.survey_id if connector else False)
+                wtmpl = rec.whatsapp_template_id or (connector.whatsapp_template_id if connector else False)
+
+                if not survey or not wtmpl:
+                    raise ValidationError(_("Survey and WhatsApp template must be set on the active Freshchat connector (or on the shipment)."))
+
+                # --- إنشاء/استرجاع إجابة الاستبيان + بناء الرابط ---
+                UserInput = rec.env["survey.user_input"].sudo()
+                partner = rec.partner_id
+                answer = UserInput.search(
+                    [("survey_id", "=", survey.id), ("shipment_id", "=", rec.id)],
+                    limit=1, order="id desc"
+                )
+                if not answer:
+                    extra = {"shipment_id": rec.id}
+                    if partner:
+                        answer = survey.sudo()._create_answer(
+                            user=rec.env.user if not rec.env.user._is_public() else False,
+                            partner=partner,
+                            email=partner.email or False,
+                            test_entry=False,
+                            check_attempts=True,
+                            **extra
+                        )
+                    else:
+                        answer = survey.sudo()._create_answer(
+                            user=rec.env.user if not rec.env.user._is_public() else False,
+                            email=False,
+                            test_entry=False,
+                            check_attempts=True,
+                            **extra
+                        )
+
+                if answer:
+                    rel = "/survey/%s/%s" % (answer.survey_id.access_token, answer.access_token)
+                    abs_url = rec._absolute_url(rel)
+                    rec.sudo().write({"survey_answer_id": answer.id, "survey_url": abs_url})
+
+                # --- نوع الميديا من القالب ---
+                media_url = False
+                mt = wtmpl.message_type
+                if mt == "image":
+                    media_url = wtmpl.image_url
+                elif mt == "video":
+                    media_url = wtmpl.video_url
+                elif mt == "document":
+                    media_url = wtmpl.document_url
+
+                # --- تهيئة رقم الهاتف ---
+                raw_phone = rec.mobile or rec.phone or False
+
+                def _normalize_phone_for_shipment(raw, shipment_country, company):
+                    if not raw:
+                        return (False, "Missing phone on shipment (mobile/phone)")
+                    digits = re.sub(r"\D", "", str(raw))
+                    if not digits:
+                        return (False, "Phone has no digits")
+                    if digits.startswith("00"):
+                        digits = digits[2:]
+
+                    phone_code = False
+                    if shipment_country and getattr(shipment_country, "phone_code", False):
+                        phone_code = str(shipment_country.phone_code).lstrip("+").lstrip("0")
+                    elif company and company.country_id and getattr(company.country_id, "phone_code", False):
+                        phone_code = str(company.country_id.phone_code).lstrip("+").lstrip("0")
+
+                    if not phone_code:
+                        return (False, "Missing country phone code on shipment/company")
+
+                    if digits.startswith("0"):
+                        digits = digits.lstrip("0")
+                    if not digits:
+                        return (False, "Empty after stripping leading zeros")
+
+                    e164_no_plus = phone_code + digits
+                    e164_with_plus = "+" + e164_no_plus
+                    if len(e164_no_plus) < 10:
+                        return (False, "Phone too short after normalization")
+                    return (e164_with_plus, None)
+
+                e164_phone, phone_err = _normalize_phone_for_shipment(
+                    raw_phone, rec.country_id, (rec.company_id or rec.env.company)
+                )
+
+                # حضّر السائق ليُحفظ في History
+                driver_id = getattr(rec, "delivery_boy_partner_id", False)
+                driver_id = driver_id.id if driver_id else False
+
+                if not e164_phone:
+                    rec.env["shipment.survey.history"].sudo().create({
+                        "shipment_id": rec.id,
+                        "partner_id": partner.id if partner else False,
+                        "phone": raw_phone or False,
+                        "template_id": wtmpl.id,
+                        "url": rec.survey_url or False,
+                        "status": "failed",
+                        "message": _("WhatsApp survey push FAILED."),
+                        "error": phone_err or _("Invalid phone"),
+                        "answer_id": answer.id if answer else False,
+                        "delivery_boy_partner_id": driver_id,
+                    })
+                    rec.message_post(body=_("Survey WhatsApp sending error: %s (shipment phone: %s)")
+                                          % (phone_err or "-", raw_phone or "-"))
+                    continue
+
+                if not rec.survey_url:
+                    rec.env["shipment.survey.history"].sudo().create({
+                        "shipment_id": rec.id,
+                        "partner_id": partner.id if partner else False,
+                        "phone": e164_phone,
+                        "template_id": wtmpl.id,
+                        "url": rec.survey_url or False,
+                        "status": "failed",
+                        "message": _("WhatsApp survey push FAILED."),
+                        "error": _("Missing survey_url value for template placeholders"),
+                        "answer_id": answer.id if answer else False,
+                        "delivery_boy_partner_id": driver_id,
+                    })
+                    rec.message_post(body=_("Survey WhatsApp sending error: Missing survey_url placeholder value"))
+                    continue
+
+                connector = connector or rec.env["odx.freshchat.connector"].sudo().search([("active", "=", True)], limit=1)
+                if not connector:
+                    rec.message_post(body=_("No Freshchat connector configured. Cannot send survey WhatsApp."))
+                    continue
+
+                try:
+                    request_id = connector.send_whatsapp_message_into_shipper(
+                        rec, connector, wtmpl, media_url
+                    )
+                    request_text = request_id if isinstance(request_id, str) else str(request_id or "")
+                    sent_ok = bool(request_text) and ("failed" not in request_text.lower())
+
+                    rec.env["shipment.survey.history"].sudo().create({
+                        "shipment_id": rec.id,
+                        "partner_id": partner.id if partner else False,
+                        "phone": e164_phone,
+                        "template_id": wtmpl.id,
+                        "url": rec.survey_url or False,
+                        "status": "sent" if sent_ok else "failed",
+                        "message_sid": request_text if request_text else False,
+                        "message": _("WhatsApp survey push %s.") % ("OK" if sent_ok else "FAILED"),
+                        "error": False if sent_ok else request_text,
+                        "answer_id": answer.id if answer else False,
+                        "delivery_boy_partner_id": driver_id,
+                    })
+
+                    rec.message_post(body=_("Survey WhatsApp request: %s<br/>URL: %s<br/>To: %s")
+                                          % (request_text or "-", rec.survey_url or "-", e164_phone))
+
+                    if sent_ok:
+                        rec.sudo().write({"survey_sent": True})
+
+                except Exception as e:
+                    rec.env["shipment.survey.history"].sudo().create({
+                        "shipment_id": rec.id,
+                        "partner_id": partner.id if partner else False,
+                        "phone": e164_phone,
+                        "template_id": wtmpl.id,
+                        "url": rec.survey_url or False,
+                        "status": "failed",
+                        "message": _("WhatsApp survey push FAILED."),
+                        "error": str(e),
+                        "answer_id": answer.id if answer else False,
+                        "delivery_boy_partner_id": driver_id,
+                    })
+                    rec.message_post(body=_("Survey WhatsApp sending exception: %s") % str(e))
+
+        return res
+
+# models/driver_survey_line.py
+from odoo import api, fields, models, tools
+
+class DriverSurveyLine(models.Model):
+    _name = "driver.survey.line"
+    _description = "Driver Survey Lines (Yes/No) for Graph"
+    _auto = False
+    _rec_name = "shipment_id"
+
+    driver_id = fields.Many2one("res.partner", string="Driver", index=True)
+    shipment_id = fields.Many2one("shipment.order", string="Shipment", index=True)
+    partner_id = fields.Many2one("res.partner", string="Customer", index=True)
+    question_id = fields.Many2one("survey.question", string="Question", index=True)
+    answer_yesno = fields.Selection([("yes","Yes"),("no","No")], string="Answer (Yes/No)", index=True)
+    completed_at = fields.Datetime(string="Completed At", index=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self._cr, 'driver_survey_line')
+        self._cr.execute("""
+            CREATE VIEW driver_survey_line AS
+            WITH hist AS (
+                SELECT
+                    h.answer_id,
+                    h.shipment_id,
+                    h.delivery_boy_partner_id AS driver_id,
+                    MAX(h.completed_at)      AS completed_at
+                FROM shipment_survey_history h
+                WHERE h.status = 'completed' AND h.answer_id IS NOT NULL
+                GROUP BY h.answer_id, h.shipment_id, h.delivery_boy_partner_id
+            )
+            SELECT
+                -- id تركيب ثابت لتجنّب التعارض
+                (l.id * 100000 + COALESCE(hist.driver_id,0))::bigint AS id,
+                hist.driver_id             AS driver_id,
+                hist.shipment_id           AS shipment_id,
+                so.partner_id              AS partner_id,
+                l.question_id              AS question_id,
+                CASE WHEN l.answer_yesno IN ('yes','no') THEN l.answer_yesno ELSE NULL END AS answer_yesno,
+                hist.completed_at          AS completed_at
+            FROM survey_user_input_line l
+            JOIN hist
+              ON hist.answer_id = l.user_input_id
+            LEFT JOIN shipment_order so
+              ON so.id = hist.shipment_id
+            WHERE l.answer_yesno IN ('yes','no')
+        """)
+
+============================================================
+FILE: views/driver_survey_report_wizard_views.xml
+============================================================
+<!-- views/driver_survey_graph_views.xml -->
+<odoo>
+  <!-- Graph (Pie نعم/لا) -->
+  <record id="view_driver_survey_line_graph" model="ir.ui.view">
+    <field name="name">driver.survey.line.graph</field>
+    <field name="model">driver.survey.line</field>
+    <field name="arch" type="xml">
+      <graph string="Driver Survey (Yes/No)" type="pie">
+        <field name="answer_yesno" type="row"/>
+        <field name="id" type="measure" string="Count"/>
+      </graph>
+    </field>
+  </record>
+
+  <!-- Tree (تفاصيل الشحنات) -->
+  <record id="view_driver_survey_line_tree" model="ir.ui.view">
+    <field name="name">driver.survey.line.tree</field>
+    <field name="model">driver.survey.line</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="completed_at"/>
+        <field name="shipment_id"/>
+        <field name="partner_id"/>
+        <field name="question_id"/>
+        <field name="answer_yesno"/>
+      </tree>
+    </field>
+  </record>
+
+  <!-- Search: فلترة إضافية -->
+  <record id="view_driver_survey_line_search" model="ir.ui.view">
+    <field name="name">driver.survey.line.search</field>
+    <field name="model">driver.survey.line</field>
+    <field name="arch" type="xml">
+      <search string="Driver Survey">
+        <field name="driver_id"/>
+        <field name="shipment_id"/>
+        <field name="partner_id"/>
+        <field name="question_id"/>
+        <filter string="This Month" name="this_month"
+                domain="[('completed_at','&gt;=', (context_today().strftime('%%Y-%%m-01')))]"/>
+        <group expand="0" string="Group By">
+          <filter string="Driver" name="grp_driver" context="{'group_by':'driver_id'}"/>
+          <filter string="Question" name="grp_question" context="{'group_by':'question_id'}"/>
+          <filter string="Shipment" name="grp_shipment" context="{'group_by':'shipment_id'}"/>
+          <filter string="Day" name="grp_day" context="{'group_by':'completed_at:day'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <!-- Action عام (لو تحب الدخول مباشرة بدون Wizard) -->
+  <record id="action_driver_survey_line_graph" model="ir.actions.act_window">
+    <field name="name">Driver Survey (Yes/No)</field>
+    <field name="res_model">driver.survey.line</field>
+    <field name="view_mode">graph,tree</field>
+  </record>
+</odoo>
+
+
+============================================================
+FILE: views/shipment_order_views.xml
+============================================================
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Form View to Modify it -->
+    <record id="freshchat_connector_form_view_inh" model="ir.ui.view">
+        <field name="name">freshchat.connector.form.view.inh</field>
+        <field name="model">odx.freshchat.connector</field>
+        <field name="inherit_id" ref="odx_freshchat_connector.freshchat_connector_form_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//notebook//page//group" position="inside">
+                <field name="survey_id"/>
+                <field name="whatsapp_template_id" options="{'no_create_edit': False}"/>
+            </xpath>
+
+        </field>
+    </record>
+    <record id="view_shipment_order_form_survey_inherit" model="ir.ui.view">
+        <field name="name">shipment.order.form.survey.inherit</field>
+        <field name="model">shipment.order</field>
+        <field name="inherit_id" ref="eg_shipment_management.manually_shipment_order_form_view"/>
+        <field name="arch" type="xml">
+
+            <!-- إدراج مجموعة "Survey" داخل الـ sheet مباشرة -->
+
+            <xpath expr="//group/group[1]/field[@name='message_send']" position="after">
+                <field name="survey_sent" readonly="1"/>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <group string="Survey" invisible="1">
+                    <field name="survey_id" invisible="1"/>
+                    <field name="whatsapp_template_id" options="{'no_create_edit': False}" invisible="1"/>
+                </group>
+            </xpath>
+            <xpath expr="//sheet//div[@name='button_box']" position="inside">
+                <button type="object"
+                        class="oe_stat_button"
+                        name="action_open_survey_history"
+                        icon="fa-list"
+                        attrs="{'invisible': [('survey_history_count', '=', 0)]}">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="survey_history_count"/>
+                        </span>
+                        <span class="o_stat_text">Surveys</span>
+                    </div>
+                </button>
+            </xpath>
+
+            <!-- تبويب "Survey History" داخل الـ notebook -->
+<!--            <xpath expr="//sheet//notebook" position="inside">-->
+<!--                <page string="Survey History" name="survey_history_tab">-->
+<!--                    <field name="survey_history_ids" nolabel="1" readonly="1">-->
+<!--                        <tree>-->
+<!--                            <field name="create_date"/>-->
+<!--                            <field name="status"/>-->
+<!--                            <field name="partner_id"/>-->
+<!--                            <field name="phone"/>-->
+<!--                            <field name="template_id"/>-->
+<!--                            <field name="url"/>-->
+<!--                            <field name="message_sid"/>-->
+<!--                            <field name="error"/>-->
+<!--                        </tree>-->
+<!--                        <form>-->
+<!--                            <group>-->
+<!--                                <group>-->
+<!--                                    <field name="status"/>-->
+<!--                                    <field name="partner_id"/>-->
+<!--                                    <field name="phone"/>-->
+<!--                                    <field name="channel"/>-->
+<!--                                </group>-->
+<!--                                <group>-->
+<!--                                    <field name="template_id"/>-->
+<!--                                    <field name="url"/>-->
+<!--                                    <field name="message_sid"/>-->
+<!--                                    <field name="answer_id"/>-->
+<!--                                </group>-->
+<!--                            </group>-->
+<!--                            <group>-->
+<!--                                <field name="message"/>-->
+<!--                                <field name="error"/>-->
+<!--                            </group>-->
+<!--                        </form>-->
+<!--                    </field>-->
+<!--                </page>-->
+<!--            </xpath>-->
+
+        </field>
+    </record>
+</odoo>
+
+
+============================================================
+FILE: views/shipment_survey_history_views.xml
+============================================================
+<odoo>
+    <data>
+        <record id="view_shipment_survey_history_form" model="ir.ui.view">
+            <field name="name">shipment.survey.history.form</field>
+            <field name="model">shipment.survey.history</field>
+            <field name="arch" type="xml">
+                <form string="Shipment Survey History">
+                    <sheet>
+                        <group>
+                            <group string="Basic Information">
+                                <field name="shipment_id" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                                <field name="partner_id"/>
+                                <field name="delivery_boy_partner_id" string="Driver" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                                <field name="phone"/>
+                            </group>
+                            <group string="Survey Details">
+                                <field name="channel" widget="radio"/>
+                                <field name="template_id" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                                <field name="status" widget="radio"/>
+                                <field name="answer_id" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}" invisible="1"/>
+                            </group>
+                        </group>
+
+                        <group string="Timeline" invisible="1">
+                            <group>
+                                <field name="sent_at" widget="datetime"/>
+                                <field name="completed_at" widget="datetime"/>
+                            </group>
+                        </group>
+
+                        <group string="Communication Details" invisible="1">
+                            <field name="url" placeholder="Survey URL" widget="url"/>
+                            <field name="message_sid" placeholder="Message SID"/>
+                            <field name="message" widget="text" placeholder="Message content"/>
+                            <field name="error" widget="text" placeholder="Error details (if any)"/>
+                        </group>
+                        <notebook>
+                            <page string="Answers"
+                                  attrs="{'invisible': ['|', ('answer_id','=',False), ('status','!=','completed')]}">
+
+                                <group>
+                                    <!-- هيدر بسيط (اختياري) -->
+                                    <group>
+                                        <label for="answer_id"/>
+                                        <div>
+                                            <field name="answer_id" readonly="1" nolabel="1"/>
+                                        </div>
+                                    </group>
+                                </group>
+
+                                <field name="answer_line_ids" nolabel="1" readonly="1">
+                                    <tree create="0" edit="0" delete="0">
+                                        <field name="question_id" string="Question"/>
+                                        <field name="display_name" string="Answer"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+
+                </form>
+            </field>
+        </record>
+        <!-- Tree View -->
+        <record id="view_shipment_survey_history_tree" model="ir.ui.view">
+            <field name="name">shipment.survey.history.tree</field>
+            <field name="model">shipment.survey.history</field>
+            <field name="arch" type="xml">
+                <tree string="Survey History"
+                      create="false"
+                      decoration-danger="status == 'failed'"
+                      decoration-warning="status == 'sent'"
+                      decoration-success="status == 'completed'">
+
+                    <field name="shipment_id"/>
+                    <field name="partner_id"/>
+                    <field name="delivery_boy_partner_id"/>
+                    <field name="status"/>
+
+                </tree>
+            </field>
+        </record>
+
+        <!-- Search View -->
+        <record id="view_shipment_survey_history_search" model="ir.ui.view">
+            <field name="name">shipment.survey.history.search</field>
+            <field name="model">shipment.survey.history</field>
+            <field name="arch" type="xml">
+                <search string="Search Survey History">
+                    <field name="shipment_id"/>
+                    <filter string="WhatsApp" name="f_channel_whatsapp" domain="[('channel','=','whatsapp')]"/>
+
+                    <filter string="Sent" name="f_status_sent" domain="[('status','=','sent')]"/>
+                    <filter string="Failed" name="f_status_failed" domain="[('status','=','failed')]"/>
+                    <filter string="Completed" name="f_status_completed" domain="[('status','=','completed')]"/>
+
+                    <group expand="0" string="Group By">
+                        <filter string="Shipment" name="g_shipment" context="{'group_by':'shipment_id'}"/>
+                        <filter string="Status" name="g_status" context="{'group_by':'status'}"/>
+                    </group>
+
+                    <separator/>
+                    <filter string="Has Answer" name="f_has_answer" domain="[('answer_id','!=',False)]"/>
+                    <filter string="No Answer" name="f_no_answer" domain="[('answer_id','=',False)]"/>
+
+                    <separator/>
+                    <filter string="Sent Today" name="f_sent_today"
+                            domain="[
+                    ('sent_at','&gt;=', context_today().strftime('%%Y-%%m-%%d 00:00:00')),
+                    ('sent_at','&lt;=', context_today().strftime('%%Y-%%m-%%d 23:59:59'))
+                  ]"/>
+                </search>
+            </field>
+        </record>
+
+        <!-- (اختياري) Action لفتح القائمة مباشرة -->
+        <record id="action_shipment_survey_history" model="ir.actions.act_window">
+            <field name="name">Survey History</field>
+            <field name="res_model">shipment.survey.history</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="view_shipment_survey_history_search"/>
+            <field name="context">{}</field>
+        </record>
+
+    </data>
+</odoo>
+
+
+============================================================
+FILE: wizard/__init__.py
+============================================================
+from . import driver_survey_report_wizard
+
+
+============================================================
+FILE: wizard/driver_survey_graph_wizard_views.xml
+============================================================
+<odoo>
+  <record id="view_driver_survey_graph_wizard" model="ir.ui.view">
+    <field name="name">driver.survey.graph.wizard.form</field>
+    <field name="model">driver.survey.graph.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Driver Survey Graph">
+        <group>
+          <group>
+            <field name="driver_id" required="1" domain="[('is_delivery_boy','=',True)]"/>
+          <field name="question_id"/>
+          </group>
+
+          <group>
+            <field name="date_from"/>
+            <field name="date_to"/>
+          </group>
+        </group>
+        <footer>
+          <button name="action_open_graph" type="object" class="btn-primary" string="Show Graph"/>
+          <button string="Cancel" class="btn-secondary" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_driver_survey_graph_wizard" model="ir.actions.act_window">
+    <field name="name">Driver Survey Graph</field>
+    <field name="res_model">driver.survey.graph.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <menuitem id="menu_driver_survey_graph_wizard"
+            name="Driver Survey Graph"
+            parent="eg_shipment_management.menu_reports_main"
+            action="action_driver_survey_graph_wizard"/>
+</odoo>
+
+
+============================================================
+FILE: wizard/driver_survey_report_wizard.py
+============================================================
+# models/driver_survey_graph_wizard.py
+from odoo import api, fields, models, _
+
+class DriverSurveyGraphWizard(models.TransientModel):
+    _name = "driver.survey.graph.wizard"
+    _description = "Driver Survey Graph Wizard"
+
+    driver_id = fields.Many2one("res.partner", string="Driver", required=True, domain=[("is_company","=",False)])
+    question_id = fields.Many2one("survey.question", string="Question (optional)")
+    date_from = fields.Datetime(string="From")
+    date_to = fields.Datetime(string="To")
+
+    def _build_domain(self):
+        self.ensure_one()
+        dom = [("driver_id", "=", self.driver_id.id)]
+        if self.question_id:
+            dom.append(("question_id", "=", self.question_id.id))
+        if self.date_from:
+            dom.append(("completed_at", ">=", self.date_from))
+        if self.date_to:
+            dom.append(("completed_at", "<=", self.date_to))
+        return dom
+
+    def action_open_graph(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Driver Survey (Yes/No)"),
+            "res_model": "driver.survey.line",
+            "view_mode": "graph,tree",   # ← نعرض الجراف ومعه التبديل إلى الشجرة
+            "domain": self._build_domain(),
+            "context": {"graph_view": "pie"},
+            "target": "current",
+        }
+
+
+============================================================
+FILE: __init__.py
+============================================================
+from . import models
+from . import wizard
+
+
+============================================================
+FILE: __manifest__.py
+============================================================
+{
+    "name": "Shipment Survey (Auto WhatsApp on Delivered)",
+    "version": "16.0.1.3",
+    "author": "Mohammad Haitham Salman",
+    "website": "https://example.com",
+    "depends": [
+        "survey",
+        "mail",
+        "eg_shipment_management",
+        "odx_freshchat_connector"
+    ],
+    "summary": "Auto-send Arabic WhatsApp survey link when shipment is Delivered; store responses and history on the shipment",
+    "data": [
+        "security/ir.model.access.csv",
+        "views/shipment_order_views.xml",
+        "views/driver_survey_report_wizard_views.xml",
+        "views/shipment_survey_history_views.xml",
+        "wizard/driver_survey_graph_wizard_views.xml"
+    ],
+    "license": "LGPL-3",
+    "installable": True
+}

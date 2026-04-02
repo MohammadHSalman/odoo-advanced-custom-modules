@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<odoo>
+    <data>
+        <record id="order_inherit" model="ir.ui.view">
+            <field name="name">order.inherit</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[@name = 'order_fields']" position="after">
+                    <group>
+                        <field name="discount_reason" invisible="0"/>
+                        <field name="is_transfer" invisible="1"/>
+                        <field name="source_table" invisible="is_transfer != True or not source_table"/>
+                    </group>
+                </xpath>
+                <xpath expr="//page[@name = 'products']/field/tree/field[11]" position="after">
+                    <field name="discount_line_reason"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

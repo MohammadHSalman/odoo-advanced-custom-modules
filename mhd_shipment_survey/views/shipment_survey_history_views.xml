@@ -1,0 +1,130 @@
+<odoo>
+    <data>
+        <record id="view_shipment_survey_history_form" model="ir.ui.view">
+            <field name="name">shipment.survey.history.form</field>
+            <field name="model">shipment.survey.history</field>
+            <field name="arch" type="xml">
+                <form string="Shipment Survey History">
+                    <sheet>
+                        <group>
+                            <group string="Basic Information">
+                                <field name="shipment_id" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                                <field name="first_name"/>
+                                <field name="delivery_boy_partner_id" string="Driver" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                                <field name="phone"/>
+                            </group>
+                            <group string="Survey Details">
+                                <field name="channel" widget="radio"/>
+                                <field name="template_id" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                                <field name="status" widget="radio"/>
+                                <field name="answer_id" widget="many2one"
+                                       options="{'no_create': True, 'no_create_edit': True}" invisible="1"/>
+                            </group>
+                        </group>
+
+                        <group string="Timeline" invisible="1">
+                            <group>
+                                <field name="sent_at" widget="datetime"/>
+                                <field name="completed_at" widget="datetime"/>
+                            </group>
+                        </group>
+
+                        <group string="Communication Details" invisible="1">
+                            <field name="url" placeholder="Survey URL" widget="url"/>
+                            <field name="message_sid" placeholder="Message SID"/>
+                            <field name="message" widget="text" placeholder="Message content"/>
+                            <field name="error" widget="text" placeholder="Error details (if any)"/>
+                        </group>
+                        <notebook>
+                            <page string="Answers"
+                                  attrs="{'invisible': ['|', ('answer_id','=',False), ('status','!=','completed')]}">
+
+                                <group>
+                                    <!-- هيدر بسيط (اختياري) -->
+                                    <group>
+                                        <label for="answer_id"/>
+                                        <div>
+                                            <field name="answer_id" readonly="1" nolabel="1"/>
+                                        </div>
+                                    </group>
+                                </group>
+
+                                <field name="answer_line_ids" nolabel="1" readonly="1">
+                                    <tree create="0" edit="0" delete="0">
+                                        <field name="question_id" string="Question"/>
+                                        <field name="display_name" string="Answer"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+
+                </form>
+            </field>
+        </record>
+        <!-- Tree View -->
+        <record id="view_shipment_survey_history_tree" model="ir.ui.view">
+            <field name="name">shipment.survey.history.tree</field>
+            <field name="model">shipment.survey.history</field>
+            <field name="arch" type="xml">
+                <tree string="Survey History"
+                      create="false"
+                      decoration-danger="status == 'failed'"
+                      decoration-warning="status == 'sent'"
+                      decoration-success="status == 'completed'">
+
+                    <field name="shipment_id"/>
+                    <field name="first_name"/>
+                    <field name="delivery_boy_partner_id"/>
+                    <field name="status"/>
+
+                </tree>
+            </field>
+        </record>
+
+        <!-- Search View -->
+        <record id="view_shipment_survey_history_search" model="ir.ui.view">
+            <field name="name">shipment.survey.history.search</field>
+            <field name="model">shipment.survey.history</field>
+            <field name="arch" type="xml">
+                <search string="Search Survey History">
+                    <field name="shipment_id"/>
+                    <filter string="WhatsApp" name="f_channel_whatsapp" domain="[('channel','=','whatsapp')]"/>
+
+                    <filter string="Sent" name="f_status_sent" domain="[('status','=','sent')]"/>
+                    <filter string="Failed" name="f_status_failed" domain="[('status','=','failed')]"/>
+                    <filter string="Completed" name="f_status_completed" domain="[('status','=','completed')]"/>
+
+                    <group expand="0" string="Group By">
+                        <filter string="Shipment" name="g_shipment" context="{'group_by':'shipment_id'}"/>
+                        <filter string="Status" name="g_status" context="{'group_by':'status'}"/>
+                    </group>
+
+                    <separator/>
+                    <filter string="Has Answer" name="f_has_answer" domain="[('answer_id','!=',False)]"/>
+                    <filter string="No Answer" name="f_no_answer" domain="[('answer_id','=',False)]"/>
+
+                    <separator/>
+                    <filter string="Sent Today" name="f_sent_today"
+                            domain="[
+                    ('sent_at','&gt;=', context_today().strftime('%%Y-%%m-%%d 00:00:00')),
+                    ('sent_at','&lt;=', context_today().strftime('%%Y-%%m-%%d 23:59:59'))
+                  ]"/>
+                </search>
+            </field>
+        </record>
+
+        <!-- (اختياري) Action لفتح القائمة مباشرة -->
+        <record id="action_shipment_survey_history" model="ir.actions.act_window">
+            <field name="name">Survey History</field>
+            <field name="res_model">shipment.survey.history</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="view_shipment_survey_history_search"/>
+            <field name="context">{}</field>
+        </record>
+
+    </data>
+</odoo>

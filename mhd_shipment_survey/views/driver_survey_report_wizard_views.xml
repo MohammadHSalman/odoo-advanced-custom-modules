@@ -1,0 +1,58 @@
+<!-- views/driver_survey_graph_views.xml -->
+<odoo>
+  <!-- Graph (Pie نعم/لا) -->
+  <record id="view_driver_survey_line_graph" model="ir.ui.view">
+    <field name="name">driver.survey.line.graph</field>
+    <field name="model">driver.survey.line</field>
+    <field name="arch" type="xml">
+      <graph string="Driver Survey (Yes/No)" type="pie">
+        <field name="answer_yesno" type="row"/>
+        <field name="id" type="measure" string="Count"/>
+      </graph>
+    </field>
+  </record>
+
+  <!-- Tree (تفاصيل الشحنات) -->
+  <record id="view_driver_survey_line_tree" model="ir.ui.view">
+    <field name="name">driver.survey.line.tree</field>
+    <field name="model">driver.survey.line</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="completed_at"/>
+        <field name="shipment_id"/>
+        <field name="partner_id"/>
+        <field name="question_id"/>
+        <field name="answer_yesno"/>
+      </tree>
+    </field>
+  </record>
+
+  <!-- Search: فلترة إضافية -->
+  <record id="view_driver_survey_line_search" model="ir.ui.view">
+    <field name="name">driver.survey.line.search</field>
+    <field name="model">driver.survey.line</field>
+    <field name="arch" type="xml">
+      <search string="Driver Survey">
+        <field name="driver_id"/>
+        <field name="shipment_id"/>
+        <field name="partner_id"/>
+        <field name="question_id"/>
+        <filter string="This Month" name="this_month"
+                domain="[('completed_at','&gt;=', (context_today().strftime('%%Y-%%m-01')))]"/>
+        <group expand="0" string="Group By">
+          <filter string="Driver" name="grp_driver" context="{'group_by':'driver_id'}"/>
+          <filter string="Question" name="grp_question" context="{'group_by':'question_id'}"/>
+          <filter string="Shipment" name="grp_shipment" context="{'group_by':'shipment_id'}"/>
+          <filter string="Day" name="grp_day" context="{'group_by':'completed_at:day'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <!-- Action عام (لو تحب الدخول مباشرة بدون Wizard) -->
+  <record id="action_driver_survey_line_graph" model="ir.actions.act_window">
+    <field name="name">Driver Survey (Yes/No)</field>
+    <field name="res_model">driver.survey.line</field>
+    <field name="view_mode">graph,tree</field>
+  </record>
+</odoo>

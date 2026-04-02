@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Form View to Modify it -->
+    <record id="freshchat_connector_form_view_inh" model="ir.ui.view">
+        <field name="name">freshchat.connector.form.view.inh</field>
+        <field name="model">odx.freshchat.connector</field>
+        <field name="inherit_id" ref="odx_freshchat_connector.freshchat_connector_form_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//notebook//page//group" position="inside">
+                <field name="survey_id"/>
+                <field name="whatsapp_template_id" options="{'no_create_edit': False}"/>
+            </xpath>
+
+        </field>
+    </record>
+    <record id="view_shipment_order_form_survey_inherit" model="ir.ui.view">
+        <field name="name">shipment.order.form.survey.inherit</field>
+        <field name="model">shipment.order</field>
+        <field name="inherit_id" ref="eg_shipment_management.manually_shipment_order_form_view"/>
+        <field name="arch" type="xml">
+
+            <!-- إدراج مجموعة "Survey" داخل الـ sheet مباشرة -->
+
+            <xpath expr="//group/group[1]/field[@name='message_send']" position="after">
+                <field name="survey_sent" readonly="1"/>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <group string="Survey" invisible="1">
+                    <field name="survey_id" invisible="1"/>
+                    <field name="whatsapp_template_id" options="{'no_create_edit': False}" invisible="1"/>
+                </group>
+            </xpath>
+            <xpath expr="//sheet//div[@name='button_box']" position="inside">
+                <button type="object"
+                        class="oe_stat_button"
+                        name="action_open_survey_history"
+                        icon="fa-list"
+                        attrs="{'invisible': [('survey_history_count', '=', 0)]}">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="survey_history_count"/>
+                        </span>
+                        <span class="o_stat_text">Surveys</span>
+                    </div>
+                </button>
+            </xpath>
+
+            <!-- تبويب "Survey History" داخل الـ notebook -->
+<!--            <xpath expr="//sheet//notebook" position="inside">-->
+<!--                <page string="Survey History" name="survey_history_tab">-->
+<!--                    <field name="survey_history_ids" nolabel="1" readonly="1">-->
+<!--                        <tree>-->
+<!--                            <field name="create_date"/>-->
+<!--                            <field name="status"/>-->
+<!--                            <field name="partner_id"/>-->
+<!--                            <field name="phone"/>-->
+<!--                            <field name="template_id"/>-->
+<!--                            <field name="url"/>-->
+<!--                            <field name="message_sid"/>-->
+<!--                            <field name="error"/>-->
+<!--                        </tree>-->
+<!--                        <form>-->
+<!--                            <group>-->
+<!--                                <group>-->
+<!--                                    <field name="status"/>-->
+<!--                                    <field name="partner_id"/>-->
+<!--                                    <field name="phone"/>-->
+<!--                                    <field name="channel"/>-->
+<!--                                </group>-->
+<!--                                <group>-->
+<!--                                    <field name="template_id"/>-->
+<!--                                    <field name="url"/>-->
+<!--                                    <field name="message_sid"/>-->
+<!--                                    <field name="answer_id"/>-->
+<!--                                </group>-->
+<!--                            </group>-->
+<!--                            <group>-->
+<!--                                <field name="message"/>-->
+<!--                                <field name="error"/>-->
+<!--                            </group>-->
+<!--                        </form>-->
+<!--                    </field>-->
+<!--                </page>-->
+<!--            </xpath>-->
+
+        </field>
+    </record>
+</odoo>

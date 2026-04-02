@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_report_pos_order_search1" model="ir.ui.view">
+        <field name="name">report.pos.order.search</field>
+        <field name="inherit_id" ref="point_of_sale.view_report_pos_order_search"/>
+        <field name="model">report.pos.order</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_categ_id']" position="after">
+                <field name="margin_percentage"/>
+                <field name="product_cost"/>
+<!--                <field name="guests"/>-->
+<!--                <field name="average_guests"/>-->
+<!--                <field name="average_orders"/>-->
+            </xpath>
+            <xpath expr="//filter[@name='order_month']" position="after">
+                <filter string="Margin Percentage" name="margin_percentage" context="{'group_by':'margin_percentage'}"/>
+                <filter string="Product Cost" name="product_cost" context="{'group_by':'product_cost'}"/>
+<!--                <filter string="Guests" name="guests" context="{'group_by':'guests'}"/>-->
+<!--                <filter string="Average Guests" name="average_guests" context="{'group_by':'average_guests'}"/>-->
+<!--                <filter string="Average Orders" name="average_orders" context="{'group_by':'average_orders'}"/>-->
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit Form View to Modify it -->
+<!--    <record id="inherit_view_pos_order_pivot" model="ir.ui.view">-->
+<!--        <field name="name">inherit view pos order pivot</field>-->
+<!--        <field name="model">pos.order</field>-->
+<!--        <field name="inherit_id" ref="point_of_sale.view_pos_order_pivot"/>-->
+<!--        <field name="arch" type="xml">-->
+
+<!--            <xpath expr="//field[@name='amount_total']" position="after">-->
+<!--                <field name="average_guests" type="measure"/>-->
+<!--                <field name="average_orders" type="measure"/>-->
+<!--            </xpath>-->
+
+<!--        </field>-->
+<!--    </record>-->
+
+</odoo>
+

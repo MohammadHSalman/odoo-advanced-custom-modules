@@ -1,0 +1,51 @@
+<odoo>
+  <record id="view_driver_survey_report_wizard_form" model="ir.ui.view">
+    <field name="name">driver.survey.report.wizard.form</field>
+    <field name="model">driver.survey.report.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Driver Survey Report" create="false" edit="false">
+        <group>
+          <group>
+            <field name="driver_id" required="1" domain="[('is_delivery_boy','=',True)]"/>
+            <field name="question_id"/>
+          </group>
+          <group>
+            <field name="date_from"/>
+            <field name="date_to"/>
+          </group>
+        </group>
+
+        <group string="Summary">
+          <group>
+            <field name="yes_count" readonly="1"/>
+            <field name="no_count" readonly="1"/>
+            <field name="total_count" readonly="1"/>
+          </group>
+          <group>
+            <field name="pct_yes" readonly="1"/>
+            <field name="pct_no" readonly="1"/>
+          </group>
+        </group>
+
+        <footer>
+          <button name="action_open_records" type="object" class="btn-primary" string="Show Records"/>
+          <button name="action_open_pie" type="object" class="btn-secondary" string="Show Pie"/>
+          <button string="Close" class="btn-link" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_driver_survey_report_wizard" model="ir.actions.act_window">
+    <field name="name">Driver Survey Report</field>
+    <field name="res_model">driver.survey.report.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <!-- أظهره ضمن قائمة التقارير بجانب معالج الجراف الحالي -->
+  <menuitem id="menu_driver_survey_report_wizard"
+            name="Driver Survey Report"
+            parent="eg_shipment_management.menu_reports_main"
+            action="action_driver_survey_report_wizard"/>
+</odoo>

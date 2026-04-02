@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_survey_user_input_shipment,access_survey_user_input_shipment,model_survey_user_input,base.group_user,1,1,1,0
+access_shipment_survey_history,access_shipment_survey_history,model_shipment_survey_history,base.group_user,1,0,1,0
+access_driver_survey_line,access_driver_survey_line,model_driver_survey_line,base.group_user,1,0,0,0
+access_driver_survey_report_wizard,access_driver_survey_report_wizard,model_driver_survey_report_wizard,base.group_user,1,1,1,0
