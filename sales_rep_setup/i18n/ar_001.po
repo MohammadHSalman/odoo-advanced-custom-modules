@@ -1,0 +1,436 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* sales_rep_setup
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0+e-20251224\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-07 08:35+0000\n"
+"PO-Revision-Date: 2026-04-07 08:35+0000\n"
+"Last-Translator: \n"
+"Language-Team: Arabic \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_confirm_wizard
+msgid ""
+"<strong>Notice:</strong> The system will automatically extract data "
+"(Warehouse, State, and Branch Code) based on the selected company, and will "
+"create everything with a single click."
+msgstr ""
+"<strong>تنبيه:</strong> سيقوم النظام آلياً باستخراج بيانات "
+"(المستودع، المحافظة، وكود الفرع) بناءً على الشركة المحددة، وسيقوم "
+"بإنشاء كل شيء بضغطة زر."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_needaction
+msgid "Action Needed"
+msgstr "إجراء مطلوب"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_ids
+msgid "Activities"
+msgstr "الأنشطة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_exception_decoration
+msgid "Activity Exception Decoration"
+msgstr "زخرفة استثناء النشاط"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_state
+msgid "Activity State"
+msgstr "حالة النشاط"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "أيقونة نوع النشاط"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "Additional Config"
+msgstr "إعدادات إضافية"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_attachment_count
+msgid "Attachment Count"
+msgstr "عدد المرفقات"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__company_id
+msgid "Branch (Company)"
+msgstr "الفرع (الشركة)"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_confirm_wizard
+msgid "Cancel"
+msgstr "إلغاء"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields.selection,name:sales_rep_setup.selection__sales_rep_onboarding__rep_type__cashvan
+msgid "CashVan"
+msgstr "مبيعات سيارة (CashVan)"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "Company / Branch Info"
+msgstr "معلومات الشركة / الفرع"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_confirm_wizard
+msgid "Confirm & Create Full Profile"
+msgstr "تأكيد وإنشاء الكيان بالكامل"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_confirm_wizard
+msgid "Confirm Creation"
+msgstr "تأكيد الإنشاء"
+
+#. module: sales_rep_setup
+#. odoo-python
+#: code:addons/sales_rep_setup/models/sales_rep_setup.py:0
+msgid "Confirm Sales Rep Creation"
+msgstr "تأكيد إنشاء حساب مندوب المبيعات"
+
+#. module: sales_rep_setup
+#: model:ir.model,name:sales_rep_setup.model_sales_rep_confirm_wizard
+msgid "Confirm Sales Rep Creation Wizard"
+msgstr "معالج تأكيد إنشاء مندوب المبيعات"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "Create Sales Rep Account"
+msgstr "إنشاء حساب مندوب"
+
+#. module: sales_rep_setup
+#: model_terms:ir.actions.act_window,help:sales_rep_setup.action_sales_rep_onboarding
+msgid "Create a new sales representative onboarding request!"
+msgstr "قم بإنشاء طلب تجهيز مندوب مبيعات جديد!"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_confirm_wizard__create_uid
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__create_uid
+msgid "Created by"
+msgstr "أنشئ بواسطة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_confirm_wizard__create_date
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__create_date
+msgid "Created on"
+msgstr "أنشئ في"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_confirm_wizard__display_name
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__display_name
+msgid "Display Name"
+msgstr "اسم العرض"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields.selection,name:sales_rep_setup.selection__sales_rep_onboarding__state__draft
+msgid "Draft"
+msgstr "مسودة"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "English Name (For Username)"
+msgstr "الاسم بالإنجليزية (لاسم المستخدم)"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__expected_username
+msgid "Expected Username"
+msgstr "اسم المستخدم المتوقع"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "First Name"
+msgstr "الاسم الأول"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__first_name_en
+msgid "First Name (English)"
+msgstr "الاسم الأول (إنجليزي)"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_follower_ids
+msgid "Followers"
+msgstr "المتابعون"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "المتابعون (الشركاء)"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__activity_type_icon
+msgid "Font awesome icon e.g. fa-tasks"
+msgstr "أيقونة Font awesome مثال fa-tasks"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__has_message
+msgid "Has Message"
+msgstr "يحتوي على رسالة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_confirm_wizard__id
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__id
+msgid "ID"
+msgstr "المُعرف"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_exception_icon
+msgid "Icon"
+msgstr "أيقونة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__activity_exception_icon
+msgid "Icon to indicate an exception activity."
+msgstr "أيقونة للإشارة إلى نشاط استثنائي."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__message_needaction
+msgid "If checked, new messages require your attention."
+msgstr "إذا كان محددًا، فهناك رسائل جديدة تحتاج لرؤيتها."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__message_has_error
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "إذا كان محددًا، فقد حدث خطأ في تسليم بعض الرسائل."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_is_follower
+msgid "Is Follower"
+msgstr "متابع"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "Last Name"
+msgstr "اسم العائلة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__last_name_en
+msgid "Last Name (English)"
+msgstr "اسم العائلة (إنجليزي)"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_confirm_wizard__write_uid
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__write_uid
+msgid "Last Updated by"
+msgstr "آخر تحديث بواسطة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_confirm_wizard__write_date
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__write_date
+msgid "Last Updated on"
+msgstr "آخر تحديث في"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_has_error
+msgid "Message Delivery error"
+msgstr "خطأ في تسليم الرسائل"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_ids
+msgid "Messages"
+msgstr "الرسائل"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__my_activity_date_deadline
+msgid "My Activity Deadline"
+msgstr "الموعد النهائي لنشاطي"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__name_ar
+msgid "Name (Arabic)"
+msgstr "الاسم (عربي)"
+
+#. module: sales_rep_setup
+#: model:ir.ui.menu,name:sales_rep_setup.menu_sales_rep_onboarding
+msgid "New Rep Onboarding"
+msgstr "تجهيز مندوب جديد"
+
+#. module: sales_rep_setup
+#: model:ir.actions.act_window,name:sales_rep_setup.action_sales_rep_onboarding
+msgid "New Sales Rep Onboarding"
+msgstr "تجهيز مندوب مبيعات جديد"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr "الفعالية التالية في تقويم الأنشطة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_date_deadline
+msgid "Next Activity Deadline"
+msgstr "الموعد النهائي للنشاط التالي"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_summary
+msgid "Next Activity Summary"
+msgstr "ملخص النشاط التالي"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_type_id
+msgid "Next Activity Type"
+msgstr "نوع النشاط التالي"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_needaction_counter
+msgid "Number of Actions"
+msgstr "عدد الإجراءات"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_has_error_counter
+msgid "Number of errors"
+msgstr "عدد الأخطاء"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__message_needaction_counter
+msgid "Number of messages requiring action"
+msgstr "عدد الرسائل التي تتطلب إجراء"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "عدد الرسائل التي بها خطأ في التسليم"
+
+#. module: sales_rep_setup
+#. odoo-python
+#: code:addons/sales_rep_setup/models/sales_rep_setup.py:0
+msgid "Please enter the English name to generate the username."
+msgstr "الرجاء إدخال الاسم باللغة الإنجليزية لتوليد اسم المستخدم."
+
+#. module: sales_rep_setup
+#. odoo-python
+#: code:addons/sales_rep_setup/models/sales_rep_setup.py:0
+msgid ""
+"Please specify the predefined warehouse location for the PreSales "
+"representative."
+msgstr "الرجاء تحديد موقع المستودع الجاهز لمندوب الـ PreSales."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields.selection,name:sales_rep_setup.selection__sales_rep_onboarding__rep_type__presales
+msgid "PreSales"
+msgstr "مبيعات مسبقة (PreSales)"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__presales_location_id
+msgid "PreSales Location"
+msgstr "موقع الـ PreSales"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields.selection,name:sales_rep_setup.selection__sales_rep_onboarding__state__done
+msgid "Processed"
+msgstr "تمت المعالجة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__rating_ids
+msgid "Ratings"
+msgstr "التقييمات"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_confirm_wizard__onboarding_id
+msgid "Request"
+msgstr "الطلب"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__activity_user_id
+msgid "Responsible User"
+msgstr "المستخدم المسؤول"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "خطأ في تسليم الرسائل القصيرة"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "Sales Rep Name in Arabic (e.g. Ahmed Ali)"
+msgstr "اسم المندوب بالعربية (مثال: أحمد علي)"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "Sales Rep Onboarding"
+msgstr "تجهيز مندوب المبيعات"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_list
+msgid "Sales Rep Onboarding Requests"
+msgstr "طلبات تجهيز مناديب المبيعات"
+
+#. module: sales_rep_setup
+#: model:ir.model,name:sales_rep_setup.model_sales_rep_onboarding
+msgid "Sales Representative Onboarding Request"
+msgstr "طلب تجهيز مندوب مبيعات"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__rep_type
+msgid "Sales Team"
+msgstr "فريق المبيعات"
+
+#. module: sales_rep_setup
+#: model_terms:ir.ui.view,arch_db:sales_rep_setup.view_sales_rep_onboarding_form
+msgid "Sales Team Details"
+msgstr "تفاصيل فريق المبيعات"
+
+#. module: sales_rep_setup
+#. odoo-python
+#: code:addons/sales_rep_setup/models/sales_rep_setup.py:0
+msgid "Sequence setting with code 'sales.rep.profile' was not found."
+msgstr "لم يتم العثور على إعداد الترقيم التلقائي بالكود 'sales.rep.profile'."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__state
+msgid "Status"
+msgstr "الحالة"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__activity_state
+msgid ""
+"Status based on activities\n"
+"Overdue: Due date is already passed\n"
+"Today: Activity date is today\n"
+"Planned: Future activities."
+msgstr ""
+"الحالة على أساس الأنشطة\n"
+"المتأخرة: تاريخ الاستحقاق مر بالفعل\n"
+"اليوم: تاريخ النشاط هو اليوم\n"
+"المخطط: الأنشطة المستقبلية."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__activity_exception_decoration
+msgid "Type of the exception activity on record."
+msgstr "نوع النشاط الاستثنائي المسجل."
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,field_description:sales_rep_setup.field_sales_rep_onboarding__website_message_ids
+msgid "Website Messages"
+msgstr "رسائل الموقع الإلكتروني"
+
+#. module: sales_rep_setup
+#: model:ir.model.fields,help:sales_rep_setup.field_sales_rep_onboarding__website_message_ids
+msgid "Website communication history"
+msgstr "سجل تواصل الموقع الإلكتروني"
+
+#. module: sales_rep_setup
+#. odoo-python
+#: code:addons/sales_rep_setup/models/sales_rep_setup.py:0
+msgid "The Arabic Name must contain ONLY Arabic characters and spaces. (No English letters or numbers)."
+msgstr "الاسم العربي يجب أن يحتوي على حروف عربية ومسافات فقط. (يمنع استخدام الحروف الإنجليزية أو الأرقام)."
+
+#. module: sales_rep_setup
+#. odoo-python
+#: code:addons/sales_rep_setup/models/sales_rep_setup.py:0
+msgid "The First Name (English) must contain ONLY English characters. (No Arabic letters or numbers)."
+msgstr "الاسم الأول (إنجليزي) يجب أن يحتوي على حروف إنجليزية فقط. (يمنع استخدام الحروف العربية أو الأرقام)."
+
+#. module: sales_rep_setup
+#. odoo-python
+#: code:addons/sales_rep_setup/models/sales_rep_setup.py:0
+msgid "The Last Name (English) must contain ONLY English characters. (No Arabic letters or numbers)."
+msgstr "اسم العائلة (إنجليزي) يجب أن يحتوي على حروف إنجليزية فقط. (يمنع استخدام الحروف العربية أو الأرقام)."

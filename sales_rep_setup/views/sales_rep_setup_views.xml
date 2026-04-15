@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <!-- Onboarding Form View -->
+    <record id="view_sales_rep_onboarding_form" model="ir.ui.view">
+        <field name="name">sales.rep.onboarding.form</field>
+        <field name="model">sales.rep.onboarding</field>
+        <field name="arch" type="xml">
+            <form string="Sales Rep Onboarding" readonly="state == 'done'">
+                <header>
+                    <button name="action_open_wizard" type="object" string="Create Sales Rep Account" class="btn-primary" invisible="state == 'done'" groups="sales_rep_manager.sales_rep_manager"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name_ar" placeholder="Sales Rep Name in Arabic (e.g. أحمد العلي)" readonly="state == 'done'"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="English Name (For Username)">
+                            <field name="first_name_en" placeholder="First Name" readonly="state == 'done'"/>
+                            <field name="last_name_en" placeholder="Last Name" readonly="state == 'done'"/>
+                            <field name="expected_username" required="1"/>
+                            <field name="username_available" invisible="1"/>
+                            <field name="username_warning" class="text-danger" invisible="not username_warning or state == 'done'"/>
+                        </group>
+                        <group string="Company / Branch Info">
+                            <field name="company_id" readonly="state == 'done'"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Sales Team Details">
+                            <field name="rep_type" widget="radio" readonly="state == 'done'"/>
+                        </group>
+                        <group string="Additional Config">
+                            <!-- This field will only appear if the Sales Team is PreSales -->
+                            <field name="presales_location_id" invisible="rep_type != 'presales'" required="rep_type == 'presales'" readonly="state == 'done'"/>
+                            <field name="operation_type_id"/>
+                            <field name="allow_manual_offer"/>
+                            <field name="allow_usd_payment"/>
+                            <field name="attachment_mandatory"/>
+                            <field name="allowed_distance_m"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Onboarding List View -->
+    <record id="view_sales_rep_onboarding_list" model="ir.ui.view">
+        <field name="name">sales.rep.onboarding.list</field>
+        <field name="model">sales.rep.onboarding</field>
+        <field name="arch" type="xml">
+            <!-- Using list is the new standard in Odoo 18 -->
+            <list string="Sales Rep Onboarding Requests">
+                <field name="name_ar"/>
+                <field name="expected_username"/>
+                <field name="company_id"/>
+                <field name="rep_type" widget="badge"/>
+                <field name="state" widget="badge" decoration-success="state == 'done'" decoration-info="state == 'draft'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_sales_rep_onboarding" model="ir.actions.act_window">
+        <field name="name">New Sales Rep Onboarding</field>
+        <field name="res_model">sales.rep.onboarding</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new sales representative onboarding request!
+            </p>
+        </field>
+    </record>
+
+    <!-- Confirmation Wizard View -->
+    <record id="view_sales_rep_confirm_wizard" model="ir.ui.view">
+        <field name="name">sales.rep.confirm.wizard.form</field>
+        <field name="model">sales.rep.confirm.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Confirm Creation">
+                <div class="alert alert-info text-center" role="alert">
+                    <strong>Notice:</strong>
+                    The system will automatically extract data (Warehouse, State, and Branch Code) based on the selected
+                    company, and will create everything with a single click.
+                </div>
+                <group>
+                    <!-- Using True instead of 1 to comply with Odoo 18 Linter -->
+                    <field name="onboarding_id" readonly="True" invisible="True"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm &amp; Create Full Profile" class="btn-primary" icon="fa-check"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" icon="fa-times"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <menuitem id="menu_sales_rep_onboarding" name="New Rep Onboarding" parent="sales_rep_manager.menu_route_root" action="action_sales_rep_onboarding" sequence="10"/>
+</odoo>

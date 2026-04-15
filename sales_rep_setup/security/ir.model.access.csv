@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_sales_rep_onboarding_manager,sales.rep.onboarding.manager,model_sales_rep_onboarding,,1,1,1,1
+access_sales_rep_wizard_manager,sales.rep.confirm.wizard.manager,model_sales_rep_confirm_wizard,,1,1,1,1
