@@ -1,0 +1,37 @@
+<odoo>
+    <record id="view_route_line_import_wizard_form" model="ir.ui.view">
+        <field name="name">route.line.import.wizard.form</field>
+        <field name="model">route.line.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Customers to Route Line">
+                <sheet>
+                    <group>
+                        <field name="file" filename="filename"/>
+                    </group>
+                    <group>
+                        <field name="route_number"/>
+                        <field name="route_name"/>
+                        <field name="country_id"/>
+                        <field name="governorate_id"/>
+                        <field name="area_ids" widget="many2many_tags"/>
+                        <field name="sales_channel_ids" widget="many2many_tags"/>
+                    </group>
+                    <footer>
+                        <button string="Import" type="object" name="action_import_customers" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_route_line_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import Customers to Route Line</field>
+        <field name="res_model">route.line.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_route_line_import_wizard" name="Import Route Line" parent="menu_route_root"
+              action="action_route_line_import_wizard"/>
+</odoo>
