@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="0">
+    <record id="sales_rep_category" model="ir.module.category">
+        <field name="name">Sales REP</field>
+    </record>
+
+    <record id="sales_rep_user" model="res.groups">
+        <field name="name">User</field>
+        <field name="category_id" ref="sales_rep_category"/>
+    </record>
+
+    <record id="sales_rep_manager" model="res.groups">
+        <field name="name">Manager</field>
+        <field name="category_id" ref="sales_rep_category"/>
+        <field name="implied_ids" eval="[(4, ref('sales_rep_user'))]"/>
+    </record>
+    <record id="route_line_multi_company_rule" model="ir.rule">
+        <field name="name">Route Line Multi Company</field>
+        <field name="model_id" ref="model_route_line"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+</odoo>

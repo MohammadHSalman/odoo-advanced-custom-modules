@@ -1,0 +1,47 @@
+<odoo>
+    <!-- View Definition -->
+    <record id="view_route_line_import_ref_wizard_form" model="ir.ui.view">
+        <field name="name">route.line.import.ref.wizard.form</field>
+        <field name="model">route.line.import.ref.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Customers by Ref">
+                <sheet>
+                    <div class="alert alert-warning" role="alert">
+                        Please upload an Excel file containing columns: <strong>ref</strong> (Internal Reference) and <strong>Name</strong>.
+                    </div>
+                    <group>
+                        <field name="file" filename="filename"/>
+                    </group>
+                    <group>
+                        <field name="route_number"/>
+                        <field name="route_name"/>
+                        <field name="country_id"/>
+                        <field name="governorate_id"/>
+                        <field name="area_ids" widget="many2many_tags"/>
+                        <field name="sales_channel_ids" widget="many2many_tags"/>
+                    </group>
+                    <footer>
+                        <button string="Import via Ref" type="object" name="action_import_customers" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action Definition -->
+    <record id="action_route_line_import_ref_wizard" model="ir.actions.act_window">
+        <field name="name">Import Customers (By Ref)</field>
+        <field name="res_model">route.line.import.ref.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu Item -->
+    <!-- تأكد من أن parent="menu_route_root" موجود لديك بالفعل، أو غيّره للروت المناسب -->
+    <menuitem id="menu_route_line_import_ref_wizard"
+              name="Import Route Line (By Ref)"
+              parent="menu_route_root"
+              action="action_route_line_import_ref_wizard"
+              sequence="20"/>
+</odoo>
