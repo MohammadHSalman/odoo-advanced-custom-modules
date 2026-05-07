@@ -1,8 +1,9 @@
-from odoo import api, fields, models, _
-from odoo.exceptions import UserError
 import contextlib
-import random
 import logging
+import random
+
+from odoo import fields, models, _
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -84,6 +85,8 @@ class ResUsers(models.Model):
                 'sticky': False
             }
         }
+
+
 class CrmTeam(models.Model):
     _inherit = "crm.team"
 

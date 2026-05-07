@@ -1,5 +1,5 @@
+# -*- coding: utf-8 -*-
 from odoo import models, fields, api
-
 from odoo.exceptions import ValidationError
 
 
@@ -33,6 +33,7 @@ class SaleOrder(models.Model):
     )
     msl_result_ids = fields.One2many('sale.order.msl.line', 'order_id', string="MSL Results")
     client_order_ref = fields.Char(index=True)
+
 
 class SaleReport(models.Model):
     _inherit = 'sale.report'

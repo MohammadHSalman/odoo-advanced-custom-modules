@@ -4,15 +4,15 @@
 import json
 import logging
 import time
-from datetime import datetime, timedelta
 
 import jwt  # Ensure PyJWT is installed: pip install PyJWT
+from odoo import api
 from odoo import http
 from odoo.http import request
 from odoo.modules.registry import Registry
-from odoo import api
 
 _logger = logging.getLogger(__name__)
+
 
 # ---- CORS & JSON helpers ---------------------------------------------------------
 def _cors_headers():
@@ -23,9 +23,11 @@ def _cors_headers():
         ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-DB'),
     ]
 
+
 def json_response(payload, status=200):
     body = json.dumps(payload, ensure_ascii=False, default=str)
     return http.Response(body, status=status, headers=_cors_headers())
+
 
 # (توافق) دوالك السابقة التي يستعملها باقي الكنترولرز
 def get_json_data():
@@ -40,6 +42,7 @@ def get_json_data():
     except Exception as e:
         _logger.error(f"Error parsing JSON data: {e}")
         return None, "An unexpected error occurred while reading the request body."
+
 
 def format_response(success, message, data=None, error_code=None, status_code=None):
     """
@@ -61,6 +64,7 @@ def format_response(success, message, data=None, error_code=None, status_code=No
     _logger.info("API Response: %s (HTTP %s)", payload, http_status)
     return json_response(payload, status=http_status)
 
+
 # ---- Config from ir.config_parameter ---------------------------------------------
 def _get_param(key, default=None):
     try:
@@ -68,11 +72,14 @@ def _get_param(key, default=None):
     except Exception:
         return default
 
+
 def get_jwt_secret():
     return _get_param("auth_jwt_api.secret", "CHANGE_ME_SECRET")
 
+
 def get_jwt_algorithm():
     return _get_param("auth_jwt_api.algorithm", "HS256")
+
 
 def get_access_ttl_seconds():
     v = _get_param("auth_jwt_api.access_ttl_seconds", "86400")
@@ -81,12 +88,14 @@ def get_access_ttl_seconds():
     except Exception:
         return 86400
 
+
 def get_refresh_ttl_seconds():
     v = _get_param("auth_jwt_api.refresh_ttl_seconds", "1209600")  # 14 days
     try:
         return int(v)
     except Exception:
         return 1209600
+
 
 # ---- DB resolve (multi-db support) ----------------------------------------------
 def resolve_dbname(require=True):
@@ -116,11 +125,12 @@ def resolve_dbname(require=True):
 
     return db
 
+
 # ---- JWT encode/decode -----------------------------------------------------------
 def make_access_token(user_id, login, dbname):
     now = int(time.time())
     payload = {
-        "sub": str(user_id),           # RFC7519: subject should be string
+        "sub": str(user_id),  # RFC7519: subject should be string
         "login": login,
         "db": dbname,
         "type": "access",
@@ -129,10 +139,11 @@ def make_access_token(user_id, login, dbname):
     }
     return jwt.encode(payload, get_jwt_secret(), algorithm=get_jwt_algorithm())
 
+
 def make_refresh_token(user_id, login, dbname):
     now = int(time.time())
     payload = {
-        "sub": str(user_id),           # RFC7519: subject should be string
+        "sub": str(user_id),  # RFC7519: subject should be string
         "login": login,
         "db": dbname,
         "type": "refresh",
@@ -140,6 +151,7 @@ def make_refresh_token(user_id, login, dbname):
         "exp": now + get_refresh_ttl_seconds(),
     }
     return jwt.encode(payload, get_jwt_secret(), algorithm=get_jwt_algorithm())
+
 
 def decode_token(token, expected_type=None):
     try:
@@ -157,6 +169,7 @@ def decode_token(token, expected_type=None):
     except Exception as e:
         raise http.AccessDenied(f"Invalid token: {e}")
 
+
 # ---- Decorator: require JWT (stateless) ------------------------------------------
 def jwt_required(expected_type="access"):
     """
@@ -164,6 +177,7 @@ def jwt_required(expected_type="access"):
       @jwt_required()          -> require access token
       @jwt_required('refresh') -> require refresh token
     """
+
     def _decorator(func):
         def _wrapped(*args, **kwargs):
             # CORS preflight
@@ -210,7 +224,10 @@ def jwt_required(expected_type="access"):
                 return json_response({"statuscode": 500, "message": str(e)}, 500)
 
         return _wrapped
+
     return _decorator
+
+
 def noneify(v):
     """حوّل False/None/'' إلى None، واترك الباقي كما هو (لا يمس 0 أو True/False المنطقيين)."""
     if v is False or v is None:
@@ -218,6 +235,8 @@ def noneify(v):
     if isinstance(v, str) and v.strip() == "":
         return None
     return v
+
+
 def format_response(success, message, data=None, error_code=None, http_status=200):
     payload = {
         "statuscode": http_status,

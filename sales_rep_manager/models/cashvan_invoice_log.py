@@ -1,4 +1,5 @@
-from odoo import api, fields, models
+from odoo import fields, models
+
 
 class CashVanInvoiceLog(models.Model):
     _name = "cashvan.invoice.log"
@@ -10,13 +11,14 @@ class CashVanInvoiceLog(models.Model):
     mobile_invoice_number = fields.Char(string="Mobile Invoice Number")
     error_message = fields.Text(string="Error Message", required=True)
     error_stage = fields.Selection([
-        ('duplicate_check', 'Duplicate Check'),
         ('validation', 'Validation'),
-        ('sale_order', 'Sale Order Creation'),
-        ('picking', 'Delivery Processing'),
-        ('invoice', 'Invoice Creation'),
-        ('payment', 'Payment Registration'),
+        ('duplicate_check', 'Duplicate Check'),
+        ('picking_preparation', 'Picking Preparation'),
+        ('picking', 'Picking Creation'),
+        ('picking_validation', 'Picking Validation'),
+        ('credit_note_create', 'Credit Note Creation'),
+        ('payment', 'Payment'),
         ('other', 'Other'),
-    ], default='other', string="Error Stage")
-    payload = fields.Text(string="Request Payload (JSON)")  # لتخزين البيانات القادمة
+    ], string='Error Stage', required=True, default='other')
+    payload = fields.Text(string="Request Payload (JSON)")
     create_date = fields.Datetime(string="Created At", default=fields.Datetime.now)

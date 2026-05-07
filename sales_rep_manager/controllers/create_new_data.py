@@ -2,11 +2,10 @@
 # Done+++++++++++++++++++++++++++++++
 
 import logging
-import json
-from datetime import datetime
 
 from odoo import http
 from odoo.http import request
+
 from .api_utils import json_response, jwt_required, format_response, noneify
 
 _logger = logging.getLogger(__name__)
@@ -49,32 +48,89 @@ class CreateNewData(http.Controller):
             if error:
                 return format_response(False, error, error_code=-100, http_status=400)
 
-            mobile_invoice_number = data.get('mobile_invoice_number') or data.get('mobile_local_number') or data.get('mobile_number')
+            mobile_invoice_number = data.get('mobile_invoice_number') or data.get('mobile_local_number') or data.get(
+                'mobile_number')
             partner_id = data.get('partner_id')
             items = data.get('items') or data.get('order_lines')
-            attachment_name = data.get('attachment_name') or f"attachment_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
-            attachment_base64 = data.get('attachment_base64')
+
+            # ===================== ✅ جديد: مرفقات متعددة =====================
+            attachments_raw = data.get('attachments') or []
+            attachment_base64_legacy = data.get('attachment_base64')
+            attachment_name_legacy = data.get('attachment_name')
+
+            # توافق مع الطريقة القديمة (صورة وحدة)
+            if not attachments_raw and attachment_base64_legacy:
+                attachments_raw = [{
+                    'name': attachment_name_legacy or f"attachment_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                    'base64': attachment_base64_legacy,
+                    'mimetype': data.get('attachment_mimetype') or 'image/jpeg',
+                }]
+
+            if not isinstance(attachments_raw, list):
+                return format_response(
+                    False,
+                    "'attachments' must be a list",
+                    error_code=-170,
+                    http_status=400
+                )
+
+            MAX_ATTACHMENTS = 10
+            if len(attachments_raw) > MAX_ATTACHMENTS:
+                return format_response(
+                    False,
+                    f"Too many attachments. Maximum allowed is {MAX_ATTACHMENTS}",
+                    error_code=-171,
+                    http_status=400
+                )
+
+            for idx, att in enumerate(attachments_raw, start=1):
+                if not isinstance(att, dict):
+                    return format_response(
+                        False,
+                        f"Attachment #{idx}: must be an object with 'base64' field",
+                        error_code=-172,
+                        http_status=400
+                    )
+                if not att.get('base64'):
+                    return format_response(
+                        False,
+                        f"Attachment #{idx}: missing 'base64' data",
+                        error_code=-173,
+                        http_status=400
+                    )
+                try:
+                    base64.b64decode(att['base64'], validate=True)
+                except Exception:
+                    return format_response(
+                        False,
+                        f"Attachment #{idx}: invalid base64 encoding",
+                        error_code=-174,
+                        http_status=400
+                    )
+            # ==================================================================
 
             requested_status_raw = (data.get('order_status') or data.get('status') or data.get('state') or '').strip()
             status_map = {
                 'confirmed': 'confirmed', 'confirm': 'confirmed', 'sale': 'confirmed',
                 'طلب مؤكد': 'confirmed', 'مؤكد': 'confirmed',
-                # أي قيمة تفهم "invoiced" سنحوّلها الآن إلى "delivered_only" بدون إنشاء فواتير
                 'invoiced': 'delivered_only', 'invoice': 'delivered_only', 'billed': 'delivered_only',
                 'طلب مفوتر': 'delivered_only', 'مفوتر': 'delivered_only',
             }
             requested_status = status_map.get(requested_status_raw.lower(), None)
 
             if not partner_id:
-                return format_response(False, "Missing required parameter: partner_id", error_code=-101, http_status=400)
+                return format_response(False, "Missing required parameter: partner_id", error_code=-101,
+                                       http_status=400)
             if not items or not isinstance(items, list):
-                return format_response(False, "Missing or invalid 'items': must be a non-empty list", error_code=-102, http_status=400)
+                return format_response(False, "Missing or invalid 'items': must be a non-empty list", error_code=-102,
+                                       http_status=400)
 
             # -------- مستودع من موقع المندوب --------
             RepProfile = env['sales.rep.profile'].sudo()
             rep_profile = RepProfile.search([('user_id', '=', current_user.id)], limit=1)
             if not rep_profile or not rep_profile.location_id:
-                return format_response(False, "No location assigned to this sales representative", error_code=-404, http_status=200)
+                return format_response(False, "No location assigned to this sales representative", error_code=-404,
+                                       http_status=200)
 
             rep_loc = rep_profile.location_id
             Warehouse = env['stock.warehouse'].sudo()
@@ -82,7 +138,8 @@ class CreateNewData(http.Controller):
                  or Warehouse.search([('lot_stock_id', 'parent_of', rep_loc.id)], limit=1)
             wh = wh[:1]
             if not wh:
-                return format_response(False, "Could not resolve a Warehouse for the rep location", error_code=-405, http_status=200)
+                return format_response(False, "Could not resolve a Warehouse for the rep location", error_code=-405,
+                                       http_status=200)
 
             Product = env['product.product'].sudo()
             UoM = env['uom.uom'].sudo()
@@ -105,13 +162,16 @@ class CreateNewData(http.Controller):
                 try:
                     qty = float(qty)
                 except Exception:
-                    return format_response(False, f"Item #{idx}: quantity must be a number", error_code=-112, http_status=400)
+                    return format_response(False, f"Item #{idx}: quantity must be a number", error_code=-112,
+                                           http_status=400)
                 if qty <= 0:
-                    return format_response(False, f"Item #{idx}: quantity must be > 0", error_code=-113, http_status=400)
+                    return format_response(False, f"Item #{idx}: quantity must be > 0", error_code=-113,
+                                           http_status=400)
 
                 product = Product.browse(int(pid))
                 if not product.exists():
-                    return format_response(False, f"Item #{idx}: product_id {pid} not found", error_code=-114, http_status=400)
+                    return format_response(False, f"Item #{idx}: product_id {pid} not found", error_code=-114,
+                                           http_status=400)
 
                 if price_unit is None:
                     price_unit = product.lst_price
@@ -119,23 +179,28 @@ class CreateNewData(http.Controller):
                     try:
                         price_unit = float(price_unit)
                         if price_unit < 0:
-                            return format_response(False, f"Item #{idx}: price_unit must be >= 0", error_code=-115, http_status=400)
+                            return format_response(False, f"Item #{idx}: price_unit must be >= 0", error_code=-115,
+                                                   http_status=400)
                     except Exception:
-                        return format_response(False, f"Item #{idx}: price_unit must be a number", error_code=-116, http_status=400)
+                        return format_response(False, f"Item #{idx}: price_unit must be a number", error_code=-116,
+                                               http_status=400)
 
                 if discount is not None:
                     try:
                         discount = float(discount)
                         if discount < 0 or discount > 100:
-                            return format_response(False, f"Item #{idx}: discount must be between 0 and 100", error_code=-117, http_status=400)
+                            return format_response(False, f"Item #{idx}: discount must be between 0 and 100",
+                                                   error_code=-117, http_status=400)
                     except Exception:
-                        return format_response(False, f"Item #{idx}: discount must be a number", error_code=-118, http_status=400)
+                        return format_response(False, f"Item #{idx}: discount must be a number", error_code=-118,
+                                               http_status=400)
 
                 uom_id = False
                 if product_uom_id:
                     uom = UoM.browse(int(product_uom_id))
                     if not uom.exists():
-                        return format_response(False, f"Item #{idx}: product_uom {product_uom_id} not found", error_code=-119, http_status=400)
+                        return format_response(False, f"Item #{idx}: product_uom {product_uom_id} not found",
+                                               error_code=-119, http_status=400)
                     uom_id = uom.id
 
                 line_vals = {
@@ -159,16 +224,60 @@ class CreateNewData(http.Controller):
                 'order_line': order_lines_vals,
             })
 
-            # مرفق اختياري
-            if attachment_base64:
-                Attachment.create({
-                    'name': attachment_name,
+            # ===================== ✅ جديد: حفظ جميع المرفقات =====================
+            saved_attachments = []
+            MIMETYPE_MAP = {
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+                'pdf': 'application/pdf',
+                'bmp': 'image/bmp',
+            }
+
+            for idx, att in enumerate(attachments_raw, start=1):
+                att_base64 = att.get('base64')
+
+                # --- إضافة هذا الجزء لتنظيف الـ Base64 ---
+                if isinstance(att_base64, str) and ',' in att_base64:
+                    # حذف data:image/png;base64, وما شابهها
+                    att_base64 = att_base64.split(',')[-1]
+                # ----------------------------------------
+
+                att_name = (att.get('name') or '').strip()
+                att_mimetype = (att.get('mimetype') or att.get('type') or '').strip()
+
+                if not att_name:
+                    att_name = f"attachment_{sale_order.id}_{idx}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+
+                if not att_mimetype:
+                    ext = att_name.rsplit('.', 1)[-1].lower() if '.' in att_name else ''
+                    att_mimetype = MIMETYPE_MAP.get(ext, 'image/jpeg')
+
+                # إنشاء المرفق
+                attachment = Attachment.create({
+                    'name': att_name,
                     'type': 'binary',
-                    'datas': attachment_base64,
+                    'datas': att_base64,
                     'res_model': 'sale.order',
                     'res_id': sale_order.id,
-                    'mimetype': 'image/jpeg',
+                    'mimetype': att_mimetype,
+                    # 'public': True,  # أحياناً يساعد هذا في ظهورها إذا كانت هناك قيود
                 })
+
+                # اختيارياً: إضافة رسالة في الـ Chatter لضمان ظهور الصورة في السجل التاريخي
+                sale_order.message_post(
+                    body=f"تم إرفاق ملف: {att_name}",
+                    attachment_ids=[attachment.id]
+                )
+
+                saved_attachments.append({
+                    'id': attachment.id,
+                    'name': attachment.name,
+                    'mimetype': att_mimetype,
+                    'index': idx,
+                })  # =====================================================================
 
             # =========================
             # حفظ نتائج الـ MSL (اختياري)
@@ -207,7 +316,8 @@ class CreateNewData(http.Controller):
                         Attachment.create({
                             'name': f"msl_results_{sale_order.name or sale_order.id}.json",
                             'type': 'binary',
-                            'datas': base64.b64encode(json.dumps(msl_results, ensure_ascii=False).encode('utf-8')).decode('utf-8'),
+                            'datas': base64.b64encode(
+                                json.dumps(msl_results, ensure_ascii=False).encode('utf-8')).decode('utf-8'),
                             'res_model': 'sale.order',
                             'res_id': sale_order.id,
                             'mimetype': 'application/json',
@@ -223,7 +333,6 @@ class CreateNewData(http.Controller):
                     order.action_confirm()
                 return order.state in ('sale', 'done')
 
-            # fallback: نوع إخراج المستودع + مصدر من موقع المندوب
             def _force_picking_from_rep_location(picking, rep_location, warehouse):
                 try:
                     if warehouse and warehouse.out_type_id and picking.picking_type_id.id != warehouse.out_type_id.id:
@@ -239,7 +348,6 @@ class CreateNewData(http.Controller):
                     if getattr(ml, 'location_id', False) and ml.location_id.id != rep_location.id:
                         ml.write({'location_id': rep_location.id})
 
-            # تفضيل operation_type_id من بروفايل المندوب إذا كان Outgoing
             def _apply_rep_outgoing_type(picking, rep_profile, rep_location, warehouse):
                 rep_pt = getattr(rep_profile, 'operation_type_id', False)
                 rep_pt_is_out = bool(rep_pt and getattr(rep_pt, 'code', '') == 'outgoing')
@@ -307,8 +415,8 @@ class CreateNewData(http.Controller):
                 "normalized_status": noneify(requested_status) or None,
                 "confirmed": False,
                 "delivered_picking_ids": [],
-                "invoices_created": 0,     # ⟵ ثابت 0
-                "invoice_ids": [],         # ⟵ فارغ دائمًا
+                "invoices_created": 0,
+                "invoice_ids": [],
                 "warehouse_id": wh.id,
                 "warehouse_name": noneify(wh.name),
                 "rep_location_id": rep_loc.id,
@@ -321,7 +429,6 @@ class CreateNewData(http.Controller):
                 workflow["confirmed"] = _ensure_confirmed(sale_order)
 
             elif requested_status == 'delivered_only':
-                # ⟵ لا إنشاء فواتير إطلاقًا
                 workflow["confirmed"] = _ensure_confirmed(sale_order)
                 workflow["delivered_picking_ids"] = _deliver_all_pickings_from_rep(sale_order, rep_loc, wh)
 
@@ -353,9 +460,14 @@ class CreateNewData(http.Controller):
                 "amount_total": sale_order.amount_total,
                 "line_count": len(lines_out),
                 "lines": lines_out,
-                "invoices": None,  # ⟵ لا نرجع فواتير
+                # ✅ جديد: المرفقات
+                "attachments": {
+                    "total": len(saved_attachments),
+                    "items": saved_attachments,
+                },
+                "invoices": None,
                 "note": "Invoicing is disabled in this endpoint. The order was confirmed and (optionally) delivered only."
-                        if requested_status == 'delivered_only' else None,
+                if requested_status == 'delivered_only' else None,
             }
 
             return format_response(True, "Sale order created successfully", response_data, http_status=200)
@@ -390,7 +502,11 @@ class CreateNewData(http.Controller):
             customer_classification = data.get('customer_classification')
 
             street = (data.get('street') or data.get('address') or '').strip()
-            city = (data.get('city') or '').strip()  # city from payload
+            city = (data.get('city') or '').strip()
+
+            # ===================== ✅ جديد: area_id =====================
+            area_id = data.get('area_id')
+            # =============================================================
 
             # -----------------------------
             # latitude / longitude from mobile
@@ -428,10 +544,17 @@ class CreateNewData(http.Controller):
             Industry = env['res.partner.industry'].sudo()
             Partner = env['res.partner'].sudo()
             RepProfile = env['sales.rep.profile'].sudo()
+            # ===================== ✅ جديد: City Model =====================
+            CityModel = env['res.city'].sudo()
+            # ================================================================
 
             resolved_country = None
             resolved_state = None
             resolved_industry = None
+            # ===================== ✅ جديد =====================
+            resolved_area = None
+            # ====================================================
+
             if not country_id and not country_code:
                 resolved_country = env.ref('base.sy', raise_if_not_found=False)
 
@@ -490,6 +613,53 @@ class CreateNewData(http.Controller):
                 resolved_state = s
                 if not resolved_country and s.country_id:
                     resolved_country = s.country_id
+
+            # --------------------------------------------------
+            # ✅ جديد: Resolve area (res.city)
+            # --------------------------------------------------
+            if area_id:
+                try:
+                    area_id = int(area_id)
+                except (ValueError, TypeError):
+                    return format_response(
+                        False,
+                        "Invalid area_id, must be an integer",
+                        error_code=-160,
+                        http_status=400
+                    )
+
+                area = CityModel.browse(area_id)
+                if not area.exists():
+                    return format_response(
+                        False,
+                        f"area_id {area_id} not found",
+                        error_code=-161,
+                        http_status=400
+                    )
+
+                resolved_area = area
+
+                # التحقق من تطابق المنطقة مع المحافظة المختارة
+                if resolved_state and area.state_id and area.state_id.id != resolved_state.id:
+                    return format_response(
+                        False,
+                        "Selected area does not belong to the provided state/governorate",
+                        error_code=-162,
+                        http_status=400
+                    )
+
+                # إذا لم يُرسل state_id، نأخذه تلقائياً من المنطقة
+                if not resolved_state and area.state_id:
+                    resolved_state = area.state_id
+
+                # إذا لم يُرسل country_id، نأخذه تلقائياً من المنطقة
+                if not resolved_country and area.country_id:
+                    resolved_country = area.country_id
+
+                # إذا لم يُرسل city text، نأخذ اسم المنطقة
+                if not city:
+                    city = area.name
+            # --------------------------------------------------
 
             # --------------------------------------------------
             # Resolve industry
@@ -552,6 +722,11 @@ class CreateNewData(http.Controller):
                 vals['partner_latitude'] = partner_latitude
                 vals['partner_longitude'] = partner_longitude
 
+            # ===================== ✅ جديد: حفظ area_id =====================
+            if resolved_area:
+                vals['city_id'] = resolved_area.id  # حقل res.city في res.partner
+            # =================================================================
+
             partner = Partner.create(vals)
 
             response_data = {
@@ -574,6 +749,13 @@ class CreateNewData(http.Controller):
                               "name": noneify(partner.state_id.name),
                               "code": noneify(partner.state_id.code),
                           } if partner.state_id else None),
+                # ===================== ✅ جديد: area في الاستجابة =====================
+                "area": ({
+                             "id": partner.city_id.id,
+                             "name": noneify(partner.city_id.name),
+                             "zipcode": noneify(getattr(partner.city_id, 'zipcode', None)),
+                         } if partner.city_id else None),
+                # ======================================================================
                 "industry": ({
                                  "id": partner.industry_id.id,
                                  "name": noneify(partner.industry_id.name),
@@ -761,7 +943,7 @@ class CreateNewData(http.Controller):
             if (state_id is not None) or (state_code is not None) or (state_name is not None):
                 rep_profile = RepProfile.search([('user_id', '=', current_user.id)], limit=1)
                 allowed_states = rep_profile.route_id.area_ids if (
-                            rep_profile and rep_profile.route_id) else State.browse()
+                        rep_profile and rep_profile.route_id) else State.browse()
                 if allowed_states and resolved_state:
                     if resolved_state.id not in set(allowed_states.ids):
                         return format_response(

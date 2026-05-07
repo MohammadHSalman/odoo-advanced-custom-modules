@@ -3,8 +3,8 @@ import logging
 
 from odoo import http, SUPERUSER_ID, fields, api
 from odoo.http import request
+
 from .api_utils import format_response, json_response, jwt_required, noneify
-from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -527,6 +527,7 @@ class CashVanAPI(http.Controller):
         from odoo.exceptions import UserError, ValidationError
         import json
         import logging
+        from datetime import datetime, timedelta
 
         # تعريف اللوجر
         _logger = logging.getLogger(__name__)
@@ -540,8 +541,6 @@ class CashVanAPI(http.Controller):
         # ================================================
 
         try:
-            from datetime import datetime, timedelta
-
             # قراءة البيانات
             _logger.info(">>>>>moh>>>> Reading request body...")
             body, error = self._get_body()
@@ -558,7 +557,6 @@ class CashVanAPI(http.Controller):
             partner_id = body.get('partner_id')
             items = body.get('items') or body.get('lines') or []
             mobile_invoice_number = body.get('mobile_invoice_number')
-            # تعريف القائمة هنا لنستخدمها في التحقق
             payment_list = body.get('payment') or []
 
             _logger.info(
@@ -566,10 +564,7 @@ class CashVanAPI(http.Controller):
 
             # ==================== (1) التحقق من التكرار (Idempotency Check) ====================
             error_stage = 'duplicate_check'
-            _logger.info(">>>>>moh>>>> Starting Duplicate Check...")
-
             if mobile_invoice_number:
-                # 1. البحث عن السجل الموجود
                 date_threshold = datetime.utcnow() - timedelta(days=7)
                 existing_so = env['sale.order'].sudo().search([
                     ('client_order_ref', '=', mobile_invoice_number),
@@ -587,21 +582,14 @@ class CashVanAPI(http.Controller):
                         ('state', '!=', 'cancel')
                     ], limit=1)
                     if existing_inv:
-                        existing_so = env['sale.order'].sudo().search([
-                            ('invoice_ids', 'in', [existing_inv.id])
-                        ], limit=1)
+                        existing_so = env['sale.order'].sudo().search([('invoice_ids', 'in', [existing_inv.id])],
+                                                                      limit=1)
 
                 if existing_so:
-                    _logger.info(f">>>>>moh>>>> Duplicate Reference Found: {mobile_invoice_number}")
-
-                    # تحضير بيانات الرد (نحتاجها سواء للنجاح أو للخطأ)
                     final_inv = existing_so.invoice_ids.filtered(lambda x: x.state != 'cancel')[:1]
                     resp = {
-                        "sale_order": {
-                            "id": existing_so.id,
-                            "name": noneify(existing_so.name),
-                            "state": noneify(existing_so.state)
-                        },
+                        "sale_order": {"id": existing_so.id, "name": noneify(existing_so.name),
+                                       "state": noneify(existing_so.state)},
                         "invoice": {
                             "id": final_inv.id if final_inv else None,
                             "name": noneify(final_inv.name) if final_inv else None,
@@ -614,33 +602,14 @@ class CashVanAPI(http.Controller):
                         "payments_details": payment_list,
                         "is_duplicate": True
                     }
-
-                    # ========================================================
-                    # اللحظة الحاسمة: هل هو تكرار صحيح (Retry) أم خطأ (Conflict)؟
-                    # ========================================================
-
-                    # الحالة 1: العميل مختلف -> خطأ وتضارب (409)
                     if int(partner_id) != existing_so.partner_id.id:
-                        msg = f"هناك تكرار بأرقام الفواتير لعميل مختلف! (الموجود: {existing_so.partner_id.name})"
-                        _logger.warning(f">>>>>moh>>>> Conflict: {msg}")
+                        return format_response(False, "هناك تكرار بأرقام الفواتير لعميل مختلف!", resp, error_code=-409,
+                                               http_status=409)
+                    return format_response(True, "تم حفظ الفاتورة بنجاح (مكررة).", resp, http_status=200)
 
-                        # إرجاع خطأ لأن العميل مختلف
-                        return format_response(False, msg, resp, error_code=-409, http_status=409)
-
-                    # الحالة 2: نفس العميل -> نجاح وتأكيد (200)
-                    else:
-                        _logger.info(">>>>>moh>>>> Valid Retry (Same Customer). Returning 200 OK.")
-                        return format_response(True, "تم حفظ الفاتورة بنجاح (مكررة).", resp, http_status=200)
-
-            _logger.info(">>>>>moh>>>> No duplicate found. Proceeding...")
-            # ===============================================================================
-            requested_status_raw = (body.get('order_status') or body.get('status') or body.get('state') or '').strip()
-            requested_status = requested_status_raw.lower() if requested_status_raw else ''
-
-            # معالجة الصورة
-            image = body.get('image')
-            attachment_name = f"attachment_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
-            attachment_datas = None
+            # ==================== (2) معالجة المرفقات المتعددة (من الكود الفرعي) ====================
+            images_raw = body.get('images') or []
+            image_legacy = body.get('image')
             SKIP_IMAGE_VALUES = {'no need', 'no_need', 'noneed', 'none', 'null', 'skip', 'false', 'n/a', 'na', ''}
 
             def is_skip_value(val):
@@ -648,347 +617,186 @@ class CashVanAPI(http.Controller):
                 if isinstance(val, str): return val.strip().lower() in SKIP_IMAGE_VALUES
                 return False
 
-            if isinstance(image, dict):
-                if image.get('name') and not is_skip_value(image.get('name')): attachment_name = image['name']
-                raw_data = image.get('data') or image.get('base64') or image.get('content')
-                if not is_skip_value(raw_data): attachment_datas = raw_data
-            elif isinstance(image, str):
-                if not is_skip_value(image): attachment_datas = image
+            # دعم التوافق مع النسخ القديمة (إذا أرسل صورة واحدة في الحقل القديم)
+            if not images_raw and image_legacy:
+                images_raw = [image_legacy]
 
-            _logger.info(f">>>>>moh>>>> Image processing done. Has attachment: {bool(attachment_datas)}")
+            if not isinstance(images_raw, list):
+                return format_response(False, "'images' must be a list", error_code=-150, http_status=400)
 
-            msl_results = body.get('msl_results') or []
+            if len(images_raw) > 10:
+                return format_response(False, "Max 10 images allowed", error_code=-151, http_status=400)
 
-            error_stage = 'validation'
+            # ===============================================================================
+            requested_status_raw = (body.get('order_status') or body.get('status') or body.get('state') or '').strip()
+            requested_status = requested_status_raw.lower() if requested_status_raw else ''
+
             if not partner_id:
-                _logger.error(">>>>>moh>>>> Validation Failed: partner_id missing")
                 return format_response(False, "partner_id is required", error_code=-101, http_status=400)
             if not items or not isinstance(items, list):
-                _logger.error(">>>>>moh>>>> Validation Failed: items missing or invalid")
-                return format_response(False, "items must be a non-empty list", error_code=-102, http_status=400)
+                return format_response(False, "items must be a list", error_code=-102, http_status=400)
             if requested_status != 'invoice':
-                _logger.info(f">>>>>moh>>>> Status is '{requested_status}', not 'invoice'. Returning early.")
                 return format_response(True, "Status is not invoice", {}, http_status=200)
 
             # ========================================================================================
-            #  بداية المعاملة (TRANSACTION START)
+            #  بداية المعاملة
             # ========================================================================================
-            _logger.info(">>>>>moh>>>> Starting SQL Savepoint Transaction...")
-            # تمت إعادة Savepoint للوضع الطبيعي
             with env.cr.savepoint():
-
-                # 1. التحقق من البروفايل والمستودع
                 error_stage = 'sale_order'
-                _logger.info(">>>>>moh>>>> Step 1: Checking Sales Rep Profile and Warehouse")
-                RepProfile = env['sales.rep.profile'].sudo()
-                rep_profile = RepProfile.search([('user_id', '=', current_user.id)], limit=1)
+                rep_profile = env['sales.rep.profile'].sudo().search([('user_id', '=', current_user.id)], limit=1)
 
                 if not rep_profile or not rep_profile.location_id:
-                    _logger.error(">>>>>moh>>>> No profile or location found for user")
                     raise UserError("No location assigned to this sales representative")
 
-                if rep_profile.attachment_mandatory and not attachment_datas:
-                    _logger.error(">>>>>moh>>>> Attachment is mandatory but missing")
-                    # raise UserError("Attachment is mandatory for this sales representative.")
-
-                # هذا هو الموقع الصحيح الذي يجب الإخراج منه حصراً
                 rep_loc = rep_profile.location_id
-
                 Warehouse = env['stock.warehouse'].sudo()
                 wh = Warehouse.search([('lot_stock_id', 'parent_of', rep_loc.id)], limit=1)
                 if not wh: wh = Warehouse.search([('view_location_id', 'parent_of', rep_loc.id)], limit=1)
                 if not wh:
-                    main_wh = Warehouse.search([('company_id', '=', current_user.company_id.id)], limit=1)
-                    if main_wh:
-                        wh = main_wh
-                    else:
-                        raise UserError("No warehouse found for the sales rep location or company")
+                    wh = Warehouse.search([('company_id', '=', current_user.company_id.id)], limit=1)[:1]
 
-                _logger.info(f">>>>>moh>>>> Warehouse selected: {wh.name} (ID: {wh.id}), Loc: {rep_loc.name}")
+                if not wh: raise UserError("No warehouse found for the sales rep")
 
                 SaleOrder = env['sale.order'].sudo()
                 Attachment = env['ir.attachment'].sudo()
                 SOL = env['sale.order.line'].sudo()
 
-                # 2. إنشاء أمر البيع
-                _logger.info(">>>>>moh>>>> Step 2: Creating Sale Order record")
                 so_vals = {
                     'partner_id': int(partner_id),
                     'user_id': current_user.id,
                     'warehouse_id': wh.id,
+                    'client_order_ref': mobile_invoice_number if mobile_invoice_number else False
                 }
-                if mobile_invoice_number:
-                    so_vals['client_order_ref'] = mobile_invoice_number
-
                 so = SaleOrder.create(so_vals)
-                _logger.info(f">>>>>moh>>>> SO Created with ID: {so.id}")
 
-                # 3. إرفاق الصورة
-                if attachment_datas:
-                    _logger.info(">>>>>moh>>>> Step 3: Creating Attachment")
-                    Attachment.create({
-                        'name': attachment_name, 'type': 'binary', 'datas': attachment_datas,
-                        'res_model': 'sale.order', 'res_id': so.id, 'mimetype': 'image/jpeg',
-                    })
+                # --- تنفيذ رفع المرفقات المتعددة ---
+                if images_raw:
+                    for idx, img in enumerate(images_raw, start=1):
+                        attachment_name = f"attachment_{so.id}_{idx}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+                        attachment_datas = None
 
-                # 4. إضافة البنود والهدايا
-                _logger.info(">>>>>moh>>>> Step 4: Adding Order Lines")
+                        if isinstance(img, dict):
+                            if img.get('name') and not is_skip_value(img.get('name')):
+                                attachment_name = img['name']
+                            attachment_datas = img.get('data') or img.get('base64') or img.get('content')
+                        elif isinstance(img, str):
+                            if not is_skip_value(img):
+                                attachment_datas = img
+
+                        if attachment_datas:
+                            Attachment.create({
+                                'name': attachment_name, 'type': 'binary', 'datas': attachment_datas,
+                                'res_model': 'sale.order', 'res_id': so.id, 'mimetype': 'image/jpeg',
+                            })
+
+                # إضافة البنود
                 for it in items:
                     product_id = it.get('product_id')
                     qty = it.get('quantity') or it.get('qty') or 1.0
                     price = it.get('price_unit') or it.get('price')
                     is_reward = it.get('reward')
 
-                    if not product_id:
-                        raise UserError("Each line requires product_id")
-
                     vals = {
                         'order_id': so.id,
                         'product_id': int(product_id),
                         'product_uom_qty': float(qty),
                     }
-                    if price is not None:
-                        vals['price_unit'] = float(price)
+                    if price is not None: vals['price_unit'] = float(price)
 
                     if is_reward is True:
                         vals['discount'] = 100.0
-                        prod_obj = env['product.product'].sudo().browse(int(product_id))
-                        prod_name = prod_obj.display_name or prod_obj.name
-                        linked_products = []
-                        programs = env['loyalty.program'].sudo().search([('active', '=', True)])
-                        for prog in programs:
-                            for reward in prog.reward_ids:
-                                if reward.reward_type == 'product' and prod_obj in reward.reward_product_ids:
-                                    for rule in prog.rule_ids:
-                                        for orig_product in rule.product_ids:
-                                            if orig_product not in linked_products:
-                                                linked_products.append(orig_product.display_name or orig_product.name)
-                        if linked_products:
-                            vals['name'] = f"{prod_name} (هدية مجانية)"
-                        else:
-                            vals['name'] = f"{prod_name} (هدية مجانية)"
+                        vals['name'] = f"{env['product.product'].sudo().browse(int(product_id)).name} (هدية مجانية)"
 
                     SOL.create(vals)
-                _logger.info(">>>>>moh>>>> Order Lines Created.")
 
-                # 5. حفظ MSL
-                _logger.info(">>>>>moh>>>> Step 5: Saving MSL results")
-                msl_saved, msl_via = self._save_msl_results(env, so, msl_results)
-
-                # 6. تأكيد الأمر
-                _logger.info(">>>>>moh>>>> Step 6: Confirming Sale Order")
+                # حفظ MSL وتأكيد الأمر
+                self._save_msl_results(env, so, body.get('msl_results') or [])
                 if so.state in ('draft', 'sent'):
                     so.action_confirm()
 
-                # 7. معالجة التسليم (Delivery)
+                # معالجة المخازن (Picking)
                 error_stage = 'picking'
-                _logger.info(">>>>>moh>>>> Step 7: Processing Delivery Pickings")
-                for p in so.picking_ids.sudo():
-                    _logger.info(f">>>>>moh>>>> Processing Picking ID: {p.id}, State: {p.state}")
-                    if p.state in ('done', 'cancel'): continue
-                    if getattr(p, 'batch_id', False): p.write({'batch_id': False})
-
-                    # محاولة تطبيق النوع عبر الدالة المساعدة
+                for p in so.picking_ids.sudo().filtered(lambda x: x.state not in ('done', 'cancel')):
                     self._apply_rep_outgoing_type(env, p, rep_profile, rep_loc, wh)
-
-                    # ==== (Fix) إجبار الموقع بالقوة لضمان الخصم من مستودع المندوب ====
                     p.write({'location_id': rep_loc.id})
-
-                    # تحديث الحركات الداخلية أيضاً (Moves)
                     for move in p.move_ids_without_package:
                         move.write({'location_id': rep_loc.id})
-                        # تحديث الخطوط التفصيلية (Move Lines) إن وجدت
-                        for line in move.move_line_ids:
-                            line.write({'location_id': rep_loc.id})
-                    # ================================================================
+                        for line in move.move_line_ids: line.write({'location_id': rep_loc.id})
 
-                    if p.state == 'draft':
-                        _logger.info(">>>>>moh>>>> Confirming draft picking")
-                        p.action_confirm()
+                    if p.state == 'draft': p.action_confirm()
+                    self._validate_picking(env, p)
 
-                    try:
-                        _logger.info(">>>>>moh>>>> Validating Picking...")
-                        self._validate_picking(env, p)
-                        _logger.info(">>>>>moh>>>> Picking Validated Successfully")
-                    except Exception as e:
-                        _logger.error(f">>>>>moh>>>> Delivery Validation Failed: {str(e)}")
-                        raise UserError(f"Delivery Validation Failed: {str(e)}")
-
-                # 8. إنشاء الفاتورة
+                # الفوترة
                 error_stage = 'invoice'
-                _logger.info(">>>>>moh>>>> Step 8: Creating Invoice")
-                try:
-                    so._compute_invoice_status()
-                except:
-                    pass
-
                 invoices = so._create_invoices(final=False)
-                if not invoices and 'sale.advance_payment.inv' in env:
-                    _logger.info(">>>>>moh>>>> Using Advance Payment Wizard fallback")
-                    wiz = env['sale.advance_payment.inv'].sudo().create({'advance_payment_method': 'delivered'})
-                    wiz = wiz.with_context(active_model='sale.order', active_ids=[so.id], open_invoices=False)
-                    pre = so.invoice_ids.ids
-                    wiz.create_invoices()
-                    so.flush()
-                    new_ids = [i for i in so.invoice_ids.ids if i not in pre]
-                    invoices = env['account.move'].browse(new_ids)
-
                 if not invoices:
-                    _logger.error(">>>>>moh>>>> Failed to create invoice")
-                    raise UserError("Cannot create an invoice. Please check delivery status or invoicing policy.")
+                    # Fallback للويزارد إذا لزم الأمر
+                    wiz = env['sale.advance_payment.inv'].sudo().with_context(active_model='sale.order',
+                                                                              active_ids=[so.id]).create(
+                        {'advance_payment_method': 'delivered'})
+                    wiz.create_invoices()
+                    invoices = so.invoice_ids.filtered(lambda x: x.state == 'draft')
 
-                _logger.info(f">>>>>moh>>>> Invoices Created: {invoices.ids}")
+                if not invoices: raise UserError("Cannot create an invoice.")
 
-                # 9. Cash Rounding
-                CashRounding = env['account.cash.rounding'].sudo()
-                cash_rounding = CashRounding.search([('name', '=', 'NAD Cash Rounding')], limit=1)
-                if cash_rounding:
-                    _logger.info(">>>>>moh>>>> Step 9: Applying Cash Rounding")
-                    invoices.write({'invoice_cash_rounding_id': cash_rounding.id})
+                cash_rounding = env['account.cash.rounding'].sudo().search([('name', '=', 'NAD Cash Rounding')],
+                                                                           limit=1)
+                if cash_rounding: invoices.write({'invoice_cash_rounding_id': cash_rounding.id})
 
-                # 10. ترحيل الفاتورة
-                _logger.info(">>>>>moh>>>> Step 10: Posting Invoice")
-                to_post = invoices.filtered(lambda m: m.state == 'draft')
-                if to_post:
-                    to_post.action_post()
-
-                if mobile_invoice_number:
-                    invoices.sudo().write({'mobile_invoice_number': mobile_invoice_number})
-
+                invoices.action_post()
+                if mobile_invoice_number: invoices.sudo().write({'mobile_invoice_number': mobile_invoice_number})
                 inv = invoices[:1]
-                _logger.info(f">>>>>moh>>>> Primary Invoice ID: {inv.id}, State: {inv.state}")
 
-                # 11. تسجيل الدفعات (Payments)
+                # تسجيل الدفعات
                 error_stage = 'payment'
-                _logger.info(">>>>>moh>>>> Step 11: Registering Payments")
                 payments_info = []
-
-                # ==== (إضافة: تعريف المتغير هنا لتجنب الخطأ) ====
                 pay_date = None
-                # ================================================
 
-                if not isinstance(payment_list, list):
-                    payment_list = [payment_list]
-
-                for pay in payment_list:
-                    if inv.state == 'posted' and inv.payment_state in ('paid', 'in_payment'):
-                        break
-                    if inv.amount_residual == 0:
+                for pay in (payment_list if isinstance(payment_list, list) else [payment_list]):
+                    if inv.payment_state in ('paid', 'in_payment') or inv.amount_residual <= 0 or not isinstance(pay,
+                                                                                                                 dict):
                         break
 
-                    if not isinstance(pay, dict): continue
+                    amount_to_pay = float(pay.get('amount') or inv.amount_residual)
+                    if amount_to_pay <= 0: continue
 
-                    pay_amount = pay.get('amount')
-                    amount_to_pay = float(pay_amount) if pay_amount is not None else inv.amount_residual
-
-                    if amount_to_pay <= 0:
-                        continue
-
-                    # تحديث المتغير pay_date إذا وجد تاريخ
                     pay_date = pay.get('payment_date') or pay.get('date')
-                    pay_currency_val = pay.get('currency')
-                    pay_currency_id = pay.get('currency_id')
-                    pay_currency_code = pay.get('currency_code') or pay.get('currency')
-
-                    fallback_cur = inv.currency_id or (current_user.company_id and current_user.company_id.currency_id)
-                    pay_currency = self._resolve_currency(
-                        env, pay_currency_val, cur_id=pay_currency_id, cur_code=pay_currency_code, fallback=fallback_cur
-                    )
-                    if not pay_currency: continue
-
+                    pay_currency = self._resolve_currency(env, pay.get('currency'), cur_id=pay.get('currency_id'),
+                                                          cur_code=pay.get('currency_code')) or inv.currency_id
                     journal = self._get_rep_journal_for_currency(env, rep_profile, pay_currency)
+
                     if not journal: continue
 
-                    ctx = {'active_model': 'account.move', 'active_ids': [inv.id]}
-                    Register = env['account.payment.register'].with_context(ctx).sudo()
-                    reg_vals = {
-                        'journal_id': journal.id,
-                        'amount': amount_to_pay,
-                    }
-                    if pay_date:
-                        reg_vals['payment_date'] = pay_date
-
-                    try:
-                        _logger.info(
-                            f">>>>>moh>>>> Creating Payment Register. Amount: {amount_to_pay}, Journal: {journal.name}")
-                        reg = Register.create(reg_vals)
-                        reg.action_create_payments()
-
-                        payments_info.append({
-                            "amount": reg_vals['amount'],
-                            "currency": pay_currency.name,
-                            "journal_id": journal.id,
-                            "journal_name": journal.name,
-                            "payment_date": reg_vals.get('payment_date') or str(fields.Date.today())
-                        })
-
-                    except UserError as e:
-                        if "nothing left to pay" in str(e).lower():
-                            _logger.warning(
-                                f"Payment logic: Skipped registration for {mobile_invoice_number} - {str(e)}")
-                            continue
-                        else:
-                            raise e
-
-                    except Exception as e:
-                        _logger.error(f">>>>>moh>>>> Payment Error: {str(e)}")
-                        raise UserError(f"Payment Failed: {str(e)}")
+                    reg = env['account.payment.register'].with_context(active_model='account.move',
+                                                                       active_ids=[inv.id]).sudo().create({
+                        'journal_id': journal.id, 'amount': amount_to_pay,
+                        'payment_date': pay_date or fields.Date.today()
+                    })
+                    reg.action_create_payments()
+                    payments_info.append(
+                        {"amount": amount_to_pay, "currency": pay_currency.name, "journal_name": journal.name})
 
                 resp = {
-                    "sale_order": {
-                        "id": so.id,
-                        "name": noneify(so.name),
-                        "state": noneify(so.state),
-                    },
+                    "sale_order": {"id": so.id, "name": noneify(so.name), "state": noneify(so.state)},
                     "invoice": {
-                        "id": inv.id,
-                        "name": noneify(inv.name),
-                        "state": noneify(inv.state),
+                        "id": inv.id, "name": noneify(inv.name), "state": noneify(inv.state),
                         "payment_state": noneify(inv.payment_state),
-                        "mobile_invoice_number": noneify(getattr(inv, 'mobile_invoice_number', None)),
-                        "amount_total": inv.amount_total,
-                        "amount_residual": inv.amount_residual,
+                        "amount_total": inv.amount_total, "amount_residual": inv.amount_residual,
                     },
                     "payments_details": payments_info,
-                    # تم التعديل هنا ليعمل الكود بدون خطأ (حذفنا الشرط if locals لأنه صار ماله داعي)
-                    "payment_date": noneify(pay_date),
-                    "msl_results_saved": int(msl_saved),
-                    "msl_saved_via": noneify(msl_via),
-                    "cash_rounding_applied": cash_rounding.name if cash_rounding else None,
+                    "payment_date": noneify(pay_date)
                 }
-
-                _logger.info(">>>>>moh>>>> All steps completed successfully. Returning response.")
-
-                # تمت إزالة "الفخ" (Commit + Error) ليصبح الكود جاهزاً
-
                 return format_response(True, "CashVan invoice created, delivered and paid.", resp, http_status=200)
 
-            # ==================== نهاية الـ SAVEPOINT ====================
-
         except (UserError, ValidationError) as e:
-            _logger.error(f">>>>>moh>>>> Known Error Caught (Stage: {error_stage}): {str(e)}")
-            self._log_cashvan_failure(
-                env=env,
-                user_id=current_user.id,
-                partner_id=partner_id,
-                mobile_invoice_number=mobile_invoice_number,
-                error_message=str(e),
-                error_stage=error_stage,
-                payload_text=payload_text,
-            )
+            _logger.error(f">>>>>moh>>>> Error: {str(e)}")
+            self._log_cashvan_failure(env, current_user.id, partner_id, mobile_invoice_number, str(e), error_stage,
+                                      payload_text)
             return format_response(False, str(e), error_code=-400, http_status=400)
-
         except Exception as e:
-            _logger.error(f">>>>>moh>>>> CRITICAL Unknown Error Caught (Stage: {error_stage}): {str(e)}")
-            self._log_cashvan_failure(
-                env=env,
-                user_id=current_user.id,
-                partner_id=partner_id,
-                mobile_invoice_number=mobile_invoice_number,
-                error_message=f"Internal Error: {str(e)}",
-                error_stage=error_stage,
-                payload_text=payload_text,
-            )
+            _logger.exception(">>>>>moh>>>> Critical Error")
+            self._log_cashvan_failure(env, current_user.id, partner_id, mobile_invoice_number, str(e), error_stage,
+                                      payload_text)
             return format_response(False, f"Internal error: {str(e)}", error_code=-500, http_status=500)
 
     # CashVan: Return (Receipt -> Credit Note -> Pay)
@@ -1179,9 +987,20 @@ class CashVanAPI(http.Controller):
 
                 rep_loc = rep_profile.location_id
 
-                ptype = self._find_return_receipt_type(env, getattr(current_user, 'company_id', False))
+                # ptype = self._find_return_receipt_type(env, getattr(current_user, 'company_id', False))
+                ptype = env['stock.picking.type'].sudo().search([
+                    ('name', 'ilike', 'ارجاع من'),
+                    ('company_id', '=', current_user.company_id.id)
+                ], limit=1)
                 if not ptype:
-                    raise UserError("No suitable incoming 'Return' operation type found.")
+                    _logger.warning(">>>>>moh>>>> Picking type with 'ارجاع من' not found, trying fallback helper.")
+                    ptype = self._find_return_receipt_type(env, getattr(current_user, 'company_id', False))
+
+                if not ptype:
+                    raise UserError(
+                        "لم يتم العثور على نوع عملية مخزنية (Operation Type) يحتوي على 'ارجاع من' لهذا المستخدم.")
+
+                _logger.info(f">>>>>moh>>>> Using Picking Type: {ptype.display_name} (ID: {ptype.id})")
 
                 # 1. إنشاء Picking
                 error_stage = 'picking'
@@ -1629,8 +1448,9 @@ class CashVanAPI(http.Controller):
                                 # فحص الـ rules لمعرفة المنتجات الأصلية
                                 for rule in prog.rule_ids:
                                     for orig_product in rule.product_ids:
+                                        prod_name_str = orig_product.display_name or orig_product.name
                                         if orig_product not in linked_products:
-                                            linked_products.append(orig_product.display_name or orig_product.name)
+                                            linked_products.append(prod_name_str)
 
                     if linked_products:
                         vals['name'] = f"{prod_name} (هدية مجانية)"
@@ -1645,7 +1465,7 @@ class CashVanAPI(http.Controller):
             # تم حذف self._apply_mobile_rewards(env, so, reward_items)
 
             if so.state in ('draft', 'sent'):
-               so.action_confirm()
+                so.action_confirm()
 
             resp = {
                 "sale_order": {
@@ -2125,7 +1945,6 @@ class CashVanAPI(http.Controller):
                 # إضافة النتيجة للقائمة
                 results_data.append(single_resp)
 
-            # إرجاع كافة النتائج
             final_response = {
                 "count": len(results_data),
                 "payments": results_data
@@ -2135,3 +1954,5 @@ class CashVanAPI(http.Controller):
         except Exception as e:
             _logger.exception("CashVan manual payment API error")
             return format_response(False, f"Internal error: {str(e)}", error_code=-500, http_status=500)
+
+    # ======================================

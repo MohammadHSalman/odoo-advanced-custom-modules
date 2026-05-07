@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 import logging
+
+from odoo import api
 from odoo import http, SUPERUSER_ID
+from odoo.exceptions import AccessDenied
 from odoo.http import request
 from odoo.modules.registry import Registry
-from odoo import api
-from odoo.exceptions import AccessDenied
+
 from .api_utils import make_access_token
 
 _logger = logging.getLogger(__name__)
 
 
 class SessionManagement(http.Controller):
-    DATABASE_NAME = "new_allied_mobile"
+    DATABASE_NAME = "nad_test"
 
     @http.route('/sales_rep_manager/<string:api_version>/login', type='json', auth='none',
                 methods=['POST', 'OPTIONS'], csrf=False, cors="*")
@@ -58,7 +60,6 @@ class SessionManagement(http.Controller):
 
                 AccountMove = env['account.move'].sudo()
 
-                # 1. جلب آخر فاتورة نظامية
                 invoices = AccountMove.search([
                     ('user_id', '=', user.id),
                     ('mobile_invoice_number', '!=', False),
@@ -123,6 +124,7 @@ class SessionManagement(http.Controller):
         except Exception as e:
             _logger.exception("Authentication error")
             return {"statuscode": 500, "message": str(e)}
+
     @http.route('/sales_rep_manager/<string:api_version>/logout', type='json', auth='none',
                 methods=['POST', 'OPTIONS'], csrf=False, cors="*")
     def logout(self, api_version, **kwargs):

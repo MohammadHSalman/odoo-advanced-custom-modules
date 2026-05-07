@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+
 from odoo import http, fields, SUPERUSER_ID
 from odoo.http import request
+
 from .api_utils import json_response, jwt_required, format_response, noneify
 
 _logger = logging.getLogger(__name__)

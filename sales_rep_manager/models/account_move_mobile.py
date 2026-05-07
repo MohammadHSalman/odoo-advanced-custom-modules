@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models, api
-import qrcode
 import base64
 from io import BytesIO
+
+import qrcode
+from odoo import fields, models, api
+
 
 class AccountMove(models.Model):
     _inherit = "account.move"

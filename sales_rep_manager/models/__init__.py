@@ -9,3 +9,4 @@ from . import account_move_mobile
 from . import res_currency
 from . import cashvan_invoice_log
 from . import loyalty_program
+from . import sales_rep_location

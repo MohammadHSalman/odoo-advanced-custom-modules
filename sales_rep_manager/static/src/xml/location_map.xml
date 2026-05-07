@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="sales_rep_manager.LocationMap">
+        <div class="d-flex flex-column h-100 bg-white">
+            <div class="d-flex align-items-center gap-3 p-2 bg-light border-bottom shadow-sm flex-wrap">
+                <div class="fw-bold text-primary pe-2 border-end">📍 Location Tracking</div>
+
+                <!-- Smart search field with clear button -->
+                <div class="custom-search-box position-relative" style="width: 250px;">
+                    <div class="input-group input-group-sm shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="fa fa-search text-muted"/></span>
+
+                        <input type="text"
+                               class="form-control border-start-0 border-end-0"
+                               placeholder="Search..."
+                               t-att-value="state.searchQuery"
+                               t-on-input="onInputChange"
+                               t-on-click="() => this.state.isDropdownOpen = true"/>
+
+                        <!-- Clear X button - visible only when there is text -->
+                        <button t-if="state.searchQuery"
+                                class="btn btn-white border border-start-0 text-muted"
+                                type="button"
+                                t-on-click="clearSearch"
+                                style="border-color: #ced4da;">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+
+                    <!-- Results dropdown -->
+                    <div t-if="state.isDropdownOpen"
+                         class="position-absolute w-100 bg-white border rounded shadow-lg mt-1"
+                         style="z-index: 2000; max-height: 200px; overflow-y: auto;">
+                        <t t-foreach="filteredReps" t-as="r" t-key="r.id">
+                            <div class="p-2 border-bottom hover-bg-light"
+                                 style="cursor: pointer;"
+                                 t-on-click="() => this.selectRep(r)">
+                                <t t-esc="r.name"/>
+                            </div>
+                        </t>
+                        <div t-if="filteredReps.length == 0" class="p-2 text-center text-muted">No results found</div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 border-start ps-3">
+                    <span class="small">From:</span>
+                    <input type="date" class="form-control form-control-sm" t-att-value="state.dateFrom"
+                           t-on-change="onDateFromChange"/>
+                    <span class="small">To:</span>
+                    <input type="date" class="form-control form-control-sm" t-att-value="state.dateTo"
+                           t-on-change="onDateToChange"/>
+                </div>
+
+                <button class="btn btn-primary btn-sm px-4 shadow-sm" t-on-click="draw" t-att-disabled="state.loading">
+                    <t t-if="state.loading"><i class="fa fa-spinner fa-spin me-1"/></t>
+                    Show Points
+                </button>
+
+                <span t-if="state.pointCount > 0" class="badge rounded-pill bg-success">
+                    <t t-esc="state.pointCount"/>
+                    records
+                </span>
+            </div>
+
+            <div t-ref="map" style="flex: 1; width: 100%; background: #eee;"/>
+        </div>
+    </t>
+</templates>

@@ -62,5 +62,6 @@
     </record>
 
     <menuitem id="menu_route_root" name="Sales Representative"/>
-    <menuitem id="menu_route_line" name="Route Lines" parent="menu_route_root" action="action_route_line" sequence="1"/>
+    <menuitem id="menu_route" name="Route" parent="menu_route_root" sequence="1"/>
+    <menuitem id="menu_route_line" name="Route Lines" parent="menu_route" action="action_route_line" sequence="1"/>
 </odoo>

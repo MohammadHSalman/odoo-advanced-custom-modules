@@ -25,9 +25,38 @@ class SalesRepresentativeProfile(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Sales Representative Profile'
 
+    picking_type_id = fields.Many2one(
+        'stock.picking.type',
+        string='Operation Type',
+        tracking=True, check_company=True,
+        domain="[('code', '=', 'internal')]",
+    )
+
+    user_name = fields.Char(
+        string="User Name",
+        related="user_id.name",
+        store=False,
+    )
+
+    filtered_location_id = fields.Many2one(
+        'stock.location',
+        string='Filtered Location', check_company=True,
+        tracking=True,
+        domain="[('company_id', '=', company_id)]",
+    )
+
+    category_ids = fields.Many2many(
+        'product.category',
+        'sales_rep_profile_product_category_rel',
+        'profile_id',
+        'category_id',
+        string='Category',
+        tracking=True,
+    )
+
     sequence = fields.Char(
         string="Sequence",
-            copy=False,
+        copy=False,
         tracking=True
     )
     allow_usd_payment = fields.Boolean(
@@ -76,19 +105,14 @@ class SalesRepresentativeProfile(models.Model):
         default=lambda self: self.env.company,
         tracking=True,
     )
-    
+
     @api.onchange('company_id')
     def _onchange_company_id(self):
         """Clear company-dependent fields when company changes."""
         self.location_id = False
         self.operation_type_id = False
         self.journal_map_ids = [(5, 0, 0)]
-        route_id = fields.Many2one(
-            'route.line',
-            string="Route",
-            help="Route",
-            tracking=True,
-        )
+
     route_id = fields.Many2one(
         'route.line',
         string="Route",
@@ -122,13 +146,36 @@ class SalesRepresentativeProfile(models.Model):
         compute_sudo=True,
         help="Cash journals not assigned to any other sales representative in the same company."
     )
-    
     allowed_distance_m = fields.Float(
         string="Allowed Distance (meters)",
         help="Maximum allowed distance in meters for this sales representative.",
         default=0.0,
         tracking=True
     )
+
+    is_trackable = fields.Boolean(
+        string="Trackable",
+        tracking=True
+    )
+    location_time = fields.Integer(
+        string="Tracking Interval (Minutes)",
+        help="Tracking interval in minutes",
+        tracking=True
+    )
+
+    @api.onchange('is_trackable')
+    def _onchange_is_trackable(self):
+        for rec in self:
+            if not rec.is_trackable:
+                rec.location_time = 0.0
+
+    @api.constrains('is_trackable', 'location_time ')
+    def _check_location_time(self):
+        for rec in self:
+            if rec.is_trackable and rec.location_time <= 0:
+                raise ValidationError(
+                    "Tracking interval must be greater than 0 minutes when Trackable is enabled."
+                )
 
     _sql_constraints = [
         ('uniq_user_profile', 'unique(user_id)',
@@ -155,6 +202,7 @@ class SalesRepresentativeProfile(models.Model):
                 rec.name = f"{rec.sequence} - {rec.user_id.name}"
             else:
                 rec.name = rec.user_id.name
+
     @api.constrains('user_id')
     def _check_single_profile_per_user(self):
         for rec in self:
@@ -305,4 +353,5 @@ class SalesRepCashJournalMap(models.Model):
                 raise ValidationError(_("Selected journal belongs to a different company."))
             expected = rec.journal_id.currency_id or (rec.company_id and rec.company_id.currency_id) or False
             if rec.currency_id != expected:
-                raise ValidationError(_("Currency must match the journal currency (or the company currency if journal has none)."))
+                raise ValidationError(
+                    _("Currency must match the journal currency (or the company currency if journal has none)."))

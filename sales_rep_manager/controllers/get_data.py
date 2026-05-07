@@ -7,6 +7,7 @@ from datetime import datetime, time
 
 from odoo import http, fields
 from odoo.http import request
+
 from .api_utils import json_response, jwt_required, noneify, format_response
 
 _logger = logging.getLogger(__name__)
@@ -550,12 +551,33 @@ class GetData(http.Controller):
 
             # ======= معالجة كل ملف مندوب =======
             customers = PartnerModel.browse()  # فارغ
+
+            from datetime import date
+            today = date.today()
+
             for profile in rep_profiles:
-                if not profile.route_id:
-                    return format_response(False, "No route assigned for this profile",
-                                           data={"total": 0, "customers": []})
-                if profile.route_id.partner_ids:
-                    customers |= profile.route_id.partner_ids
+
+                # ✅ الحالة الجديدة: Visit Plan
+                if profile.is_visit_plan:
+                    if not profile.visit_plan_id:
+                        return format_response(False, "No visit plan assigned for this profile",
+                                               data={"total": 0, "customers": []})
+
+                    visits = env['sales.visit'].sudo().search([
+                        ('plan_id', '=', profile.visit_plan_id.id),
+                        ('visit_date', '=', today)
+                    ])
+
+                    if visits:
+                        customers |= visits.mapped('customer_id')
+
+                # ✅ السلوك القديم (بدون أي تغيير)
+                else:
+                    if not profile.route_id:
+                        return format_response(False, "No route assigned for this profile",
+                                               data={"total": 0, "customers": []})
+                    if profile.route_id.partner_ids:
+                        customers |= profile.route_id.partner_ids
 
             if not customers:
                 return format_response(False, "No customers found for this route", data={"total": 0, "customers": []})
@@ -577,9 +599,9 @@ class GetData(http.Controller):
                     "name": noneify(cust.name),
                     "governorate": cust.state_id.name or "",
                     "customer_classification": noneify(getattr(cust, "customer_classification", None)),
-                    "credit": cust.credit or 0.0,  # إجمالي المبلغ المستحق (Receivable)
-                    "use_partner_credit_limit": cust.use_partner_credit_limit or False,  # هل تفعيل حد الائتمان مفعل؟
-                    "credit_limit": cust.credit_limit or 0.0,  # قيمة حد الائتمان
+                    "credit": cust.credit or 0.0,
+                    "use_partner_credit_limit": cust.use_partner_credit_limit or False,
+                    "credit_limit": cust.credit_limit or 0.0,
                     "industry": ({
                                      "id": cust.industry_id.id,
                                      "name": noneify(cust.industry_id.name),
@@ -606,7 +628,7 @@ class GetData(http.Controller):
         except Exception as e:
             _logger.exception("Error fetching customers")
             return format_response(False, f"Internal error: {str(e)}", error_code=-500,
-                                   http_status=500)  # Sale Orders (list)
+                                   http_status=500)
 
     # ----------------------------------------------------------------------
     @http.route(
@@ -1791,6 +1813,7 @@ class GetData(http.Controller):
             # ---------------------------------------------------------
             AccountMove = env['account.move'].sudo()
 
+            # 1. جلب آخر فاتورة نظامية
             invoices = AccountMove.search([
                 ('user_id', '=', user.id),
                 ('mobile_invoice_number', '!=', False),
@@ -1819,6 +1842,7 @@ class GetData(http.Controller):
             ) if last_return else None
 
             last_local_return_invoice = last_inv_return.mobile_invoice_number if last_inv_return else None
+
             # ---------------------------------------------------------
             # نهاية الإضافة
             # ---------------------------------------------------------
@@ -1868,14 +1892,16 @@ class GetData(http.Controller):
                     "country": safe(company.country_id.name),
                     "address": safe(company.street),
                     "city": safe(company.city),
-                    "vat": safe(company.vat) or "",
+                    "vat": safe(company.vat),
                     "company_registry": safe(company.company_registry),
                 },
 
                 # configuration
                 "sales_team_type": profile.sales_team_type,
                 "allow_usd_payment": profile.allow_usd_payment,
+                "allow_manual_offer": profile.allow_manual_offer,
                 "attachment_mandatory": profile.attachment_mandatory,
+                "location_time": profile.location_time,
                 "nad_rounding_value": rounding_val,
 
                 # route & location
@@ -1925,8 +1951,8 @@ class GetData(http.Controller):
 
         try:
             data = {
-                "version": "1.0.1",
-                "download_url": "dsgdfg",
+                "version": "1.0.5",
+                "download_url": "http://nad.s-apps.online:11111/down/Motahdon-Test.apk",
             }
 
             return format_response(
@@ -1944,3 +1970,543 @@ class GetData(http.Controller):
                 error_code=-500,
                 http_status=500
             )
+
+    @http.route(
+        ['/sales_rep_manager/<string:api_version>/customer_statement/<int:partner_id>'],
+        type='http', auth='none', methods=['GET', 'OPTIONS'], csrf=False, cors='*'
+    )
+    @jwt_required()
+    def get_customer_statement(self, api_version, partner_id, **kwargs):
+        """
+        API to get Customer Statement for a partner
+        Returns JSON with lines structured like the web report
+        Supports PDF if ?pdf=1
+        """
+        if request.httprequest.method == 'OPTIONS':
+            return format_response(True, "OK", {})
+
+        try:
+            env = kwargs['_jwt_env']
+
+            # Browse partner with sudo
+            partner = env['res.partner'].sudo().browse(partner_id)
+            if not partner.exists():
+                return format_response(
+                    False,
+                    "Partner not found",
+                    error_code=404,
+                    http_status=404
+                )
+
+            # Check if PDF requested
+            pdf = request.params.get('pdf') in ['1', 'true', True]
+
+            # Get report with sudo
+            report = env.ref('account_reports.customer_statement_report').sudo()
+
+            # Prepare report options
+            options = report.get_options({
+                'partner_ids': [partner.id],
+                'unfold_all': True,
+            })
+
+            if pdf:
+                attachment = partner._get_partner_account_report_attachment(report, options)
+                data = attachment[0].raw if attachment else None
+                return format_response(
+                    True,
+                    "Customer statement PDF",
+                    {
+                        "partner_id": partner.id,
+                        "partner_name": partner.name,
+                        "pdf_base64": data,
+                    },
+                    http_status=200
+                )
+
+            # Get report lines
+            lines = report._get_lines(options)
+
+            # Transform lines into structured JSON
+            formatted_lines = []
+            for line in lines:
+                # Skip summary/total lines if needed
+                if line.get('level', 0) < 3:
+                    continue
+
+                cols = line.get('columns', [])
+                formatted_line = {
+                    "name": line.get('name'),
+                    "invoice_date": next((c['name'] for c in cols if c['expression_label'] == 'invoice_date'), ''),
+                    "due_date": next((c['name'] for c in cols if c['expression_label'] == 'date_maturity'), ''),
+                    "amount": next((c['no_format'] for c in cols if c['expression_label'] == 'amount'), 0.0),
+                    "amount_currency": next(
+                        (c['no_format'] for c in cols if c['expression_label'] == 'amount_currency'), 0.0),
+                    "balance": next((c['no_format'] for c in cols if c['expression_label'] == 'balance'), 0.0),
+                    "currency_symbol": next((c.get('currency_symbol') for c in cols if
+                                             c['expression_label'] in ['amount', 'amount_currency', 'balance']), ''),
+                }
+                formatted_lines.append(formatted_line)
+
+            data = {
+                "partner_id": partner.id,
+                "partner_name": partner.name,
+                "columns": ["Invoice Date", "Due Date", "Amount", "Amount Currency", "Balance"],
+                "lines": formatted_lines
+            }
+
+            return format_response(
+                True,
+                "Customer statement data",
+                data,
+                http_status=200
+            )
+
+        except Exception as e:
+            _logger.exception("Error fetching customer statement")
+            return format_response(
+                False,
+                f"Internal error: {str(e)}",
+                error_code=-500,
+                http_status=500
+            )
+
+    @http.route([
+        '/sales_rep_manager/<string:api_version>/areas',
+        '/sales_rep_manager/<string:api_version>/get_areas',
+    ], type='http', auth='none', methods=['GET', 'OPTIONS'], csrf=False, cors="*")
+    @jwt_required()
+    def get_areas(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return request.make_response(
+                headers=[('Content-Type', 'application/json')],
+                data=json.dumps({"ok": True}),
+                status=200
+            )
+
+        try:
+            env = kwargs["_jwt_env"]
+            current_user = env['res.users'].browse(kwargs["_jwt_user_id"])
+
+            # ======= جلب معرّف المحافظة من الـ query params =======
+            governorate_id = request.params.get('governorate_id')
+
+            # ======= بناء الدومين =======
+            domain = []
+            if governorate_id:
+                try:
+                    governorate_id = int(governorate_id)
+                    domain.append(('state_id', '=', governorate_id))
+                except (ValueError, TypeError):
+                    return format_response(
+                        False,
+                        "Invalid governorate_id parameter, must be an integer",
+                        data={"total": 0, "areas": []},
+                        http_status=400
+                    )
+
+            # ======= جلب المناطق (المدن) =======
+            CityModel = env['res.city'].sudo()
+            cities = CityModel.search(domain, order='name asc')
+
+            if not cities:
+                return format_response(
+                    False,
+                    "No areas found" + (f" for governorate_id={governorate_id}" if governorate_id else ""),
+                    data={"total": 0, "areas": []}
+                )
+
+            # ======= بناء قائمة المناطق =======
+            area_list = []
+            for city in cities:
+                area_list.append({
+                    "id": city.id,
+                    "name": noneify(city.name),
+                    "zipcode": noneify(getattr(city, 'zipcode', None)),
+                    "governorate": ({
+                                        "id": city.state_id.id,
+                                        "name": noneify(city.state_id.name),
+                                        "code": noneify(city.state_id.code),
+                                    } if city.state_id else None),
+                    "country": ({
+                                    "id": city.country_id.id,
+                                    "name": noneify(city.country_id.name),
+                                } if city.country_id else None),
+                })
+
+            return format_response(True, "Areas fetched successfully", {
+                "total": len(cities),
+                "areas": area_list
+            }, http_status=200)
+
+        except Exception as e:
+            _logger.exception("Error fetching areas")
+            return format_response(
+                False,
+                f"Internal error: {str(e)}",
+                error_code=-500,
+                http_status=500
+            )
+
+    @http.route(
+        ['/sales_rep_manager/<string:api_version>/load_car/products'],
+        type='http',
+        auth='none',
+        methods=['GET', 'OPTIONS'],
+        csrf=False,
+        cors='*'
+    )
+    @jwt_required()
+    def get_load_car_products(self, api_version, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return json_response({"ok": True}, status=200)
+
+        try:
+            env = kwargs["_jwt_env"]
+            current_user = env['res.users'].browse(kwargs["_jwt_user_id"])
+
+            rep_profile = env['sales.rep.profile'].sudo().search([
+                ('user_id', '=', current_user.id)
+            ], limit=1)
+
+            if not rep_profile:
+                return format_response(
+                    False,
+                    "No sales representative profile found for this user",
+                    error_code=-200,
+                    http_status=400
+                )
+
+            source_location = rep_profile.filtered_location_id
+            if not source_location:
+                return format_response(
+                    False,
+                    "No source location assigned to this sales representative",
+                    error_code=-203,
+                    http_status=400
+                )
+
+            categories = rep_profile.category_ids
+            if not categories:
+                return format_response(
+                    True,
+                    "Products fetched successfully",
+                    {
+                        "total": 0,
+                        "source_location": {
+                            "id": source_location.id,
+                            "name": noneify(source_location.complete_name),
+                        },
+                        "categories": [],
+                        "products": [],
+                    },
+                    http_status=200
+                )
+
+            Quant = env['stock.quant'].sudo()
+            Product = env['product.product'].sudo()
+
+            quants = Quant.search([
+                ('location_id', 'child_of', source_location.id),
+            ])
+            qty_by_product = defaultdict(float)
+            available_qty_by_product = defaultdict(float)
+            for quant in quants:
+                if quant.quantity > 0:
+                    qty_by_product[quant.product_id.id] += quant.quantity
+                    available_qty_by_product[quant.product_id.id] += quant.available_quantity
+
+            products = Product.search([
+                ('id', 'in', list(qty_by_product.keys())),
+                ('active', '=', True),
+                ('categ_id', 'child_of', categories.ids),
+            ])
+
+            product_list = []
+            for product in products:
+                qty_available = float(qty_by_product.get(product.id, 0.0))
+                if qty_available <= 0.0:
+                    continue
+
+                product_list.append({
+                    "id": product.id,
+                    "name": noneify(product.name),
+                    "display_name": noneify(product.display_name),
+                    "default_code": noneify(product.default_code),
+                    "barcode": noneify(product.barcode),
+                    "uom": {
+                        "id": product.uom_id.id if product.uom_id else None,
+                        "name": noneify(product.uom_id.name) if product.uom_id else None,
+                    },
+                    "category": {
+                        "id": product.categ_id.id if product.categ_id else None,
+                        "name": noneify(product.categ_id.display_name) if product.categ_id else None,
+                    },
+                    "qty_on_hand": qty_available,
+                    "qty_available": float(available_qty_by_product.get(product.id, 0.0)),
+                    "list_price": product.list_price,
+                })
+
+            product_list.sort(key=lambda item: (item["name"] or "").lower())
+            all_categories = env['product.category'].sudo().search([
+                ('id', 'child_of', categories.ids)
+            ])
+
+            payload = {
+                "total": len(product_list),
+                "source_location": {
+                    "id": source_location.id,
+                    "name": noneify(source_location.complete_name),
+                },
+                "categories": [
+                    {
+                        "id": category.id,
+                        "name": noneify(category.display_name),
+                        "parent_id": category.parent_id.id if category.parent_id else None,
+                        "parent_name": noneify(category.parent_id.display_name) if category.parent_id else None,
+                    }
+                    for category in all_categories
+                ],
+                "products": product_list,
+            }
+
+            return format_response(True, "Products fetched successfully", payload, http_status=200)
+
+        except Exception as e:
+            _logger.exception("Error fetching load car products")
+            return format_response(False, f"Internal error: {str(e)}", error_code=-500, http_status=500)
+
+    @http.route(
+        ['/sales_rep_manager/<string:api_version>/load_car'],
+        type='http',
+        auth='none',
+        methods=['POST', 'OPTIONS'],
+        csrf=False,
+        cors='*'
+    )
+    @jwt_required()
+    def load_car_transfer(self, api_version, **kwargs):
+        """
+        API لإنشاء Internal Transfer (تحميل سيارة المندوب)
+        - Operation Type: تحميل سيارة
+        - Source: مستودع الشركة
+        - Destination: مستودع المندوب
+        - State: Draft (مسودة)
+        """
+
+        # CORS Preflight
+        if request.httprequest.method == 'OPTIONS':
+            return json_response({"ok": True}, status=200)
+
+        env = kwargs["_jwt_env"]
+        current_user = env['res.users'].browse(kwargs["_jwt_user_id"])
+
+        _logger.info(f">>>>>LOAD_CAR>>>> START: User ID: {current_user.id}")
+
+        try:
+            # ==================== قراءة البيانات ====================
+            try:
+                body = json.loads(request.httprequest.data.decode('utf-8'))
+            except Exception as e:
+                _logger.error(f">>>>>LOAD_CAR>>>> JSON Parse Error: {e}")
+                return format_response(False, f"Invalid JSON: {str(e)}", error_code=-100, http_status=400)
+
+            products = body.get('products', [])
+            note = body.get('note', '')
+
+            _logger.info(f">>>>>LOAD_CAR>>>> Received {len(products)} products")
+
+            # ==================== التحقق من المدخلات ====================
+            if not products or not isinstance(products, list):
+                return format_response(
+                    False,
+                    "Products list is required and must be a list",
+                    error_code=-101,
+                    http_status=400
+                )
+
+            if len(products) == 0:
+                return format_response(
+                    False,
+                    "At least one product is required",
+                    error_code=-102,
+                    http_status=400
+                )
+
+            # ==================== التحقق من ملف المندوب ====================
+            RepProfile = env['sales.rep.profile'].sudo()
+            rep_profile = RepProfile.search([('user_id', '=', current_user.id)], limit=1)
+
+            if not rep_profile:
+                return format_response(
+                    False,
+                    "No sales representative profile found for this user",
+                    error_code=-200,
+                    http_status=400
+                )
+
+            if not rep_profile.location_id:
+                return format_response(
+                    False,
+                    "No location assigned to this sales representative",
+                    error_code=-201,
+                    http_status=400
+                )
+
+            dest_location = rep_profile.location_id
+            _logger.info(
+                f">>>>>LOAD_CAR>>>> Destination Location: {dest_location.complete_name} (ID: {dest_location.id})")
+
+            # ==================== Operation Type من البروفايل ====================
+            picking_type = rep_profile.picking_type_id
+
+            if not picking_type:
+                return format_response(
+                    False,
+                    "No operation type assigned to this sales representative",
+                    error_code=-202,
+                    http_status=400
+                )
+
+            _logger.info(
+                f">>>>>LOAD_CAR>>>> Operation Type: {picking_type.name} (ID: {picking_type.id})"
+            )
+
+            # ==================== Source Location من البروفايل ====================
+            source_location = rep_profile.filtered_location_id
+
+            if not source_location:
+                return format_response(
+                    False,
+                    "No source location assigned to this sales representative",
+                    error_code=-203,
+                    http_status=400
+                )
+
+            _logger.info(
+                f">>>>>LOAD_CAR>>>> Source Location: {source_location.complete_name} (ID: {source_location.id})"
+            )
+            # ==================== التحقق من المنتجات ====================
+            Product = env['product.product'].sudo()
+            validated_products = []
+
+            for idx, item in enumerate(products, start=1):
+                product_id = item.get('product_id')
+                quantity = item.get('quantity')
+
+                if not product_id:
+                    return format_response(
+                        False,
+                        f"Product #{idx}: product_id is required",
+                        error_code=-103,
+                        http_status=400
+                    )
+
+                if not quantity or float(quantity) <= 0:
+                    return format_response(
+                        False,
+                        f"Product #{idx}: quantity must be greater than 0",
+                        error_code=-104,
+                        http_status=400
+                    )
+
+                product = Product.browse(int(product_id))
+                if not product.exists():
+                    return format_response(
+                        False,
+                        f"Product #{idx}: Product ID {product_id} not found",
+                        error_code=-105,
+                        http_status=400
+                    )
+
+                validated_products.append({
+                    'product': product,
+                    'quantity': float(quantity)
+                })
+
+            _logger.info(f">>>>>LOAD_CAR>>>> {len(validated_products)} products validated successfully")
+
+            # ==================== إنشاء Internal Transfer ====================
+            with env.cr.savepoint():
+                _logger.info(">>>>>LOAD_CAR>>>> Creating Internal Transfer...")
+
+                Picking = env['stock.picking'].sudo()
+                Move = env['stock.move'].sudo()
+
+                # إنشاء التحويل
+                picking_vals = {
+                    'picking_type_id': picking_type.id,
+                    'location_id': source_location.id,
+                    'location_dest_id': dest_location.id,
+                    'origin': f"Mobile-{current_user.name}",
+                    'user_id': current_user.id,
+                    'company_id': current_user.company_id.id,
+                    'scheduled_date': datetime.now(),
+                }
+
+                if note:
+                    picking_vals['note'] = note
+
+                picking = Picking.create(picking_vals)
+                _logger.info(f">>>>>LOAD_CAR>>>> Transfer Created: {picking.name} (ID: {picking.id})")
+
+                # إضافة المنتجات
+                for item in validated_products:
+                    product = item['product']
+                    quantity = item['quantity']
+
+                    move_vals = {
+                        'name': product.display_name or product.name,
+                        'picking_id': picking.id,
+                        'product_id': product.id,
+                        'product_uom_qty': quantity,
+                        'product_uom': product.uom_id.id,
+                        'location_id': source_location.id,
+                        'location_dest_id': dest_location.id,
+                        'company_id': current_user.company_id.id,
+                    }
+
+                    move = Move.create(move_vals)
+                    _logger.info(f">>>>>LOAD_CAR>>>> Move Created: {product.name} - Qty: {quantity}")
+
+                # ==================== الاستجابة ====================
+                response_data = {
+                    "transfer": {
+                        "id": picking.id,
+                        "name": noneify(picking.name),
+                        "state": noneify(picking.state),
+                        "origin": noneify(picking.origin),
+                        "scheduled_date": picking.scheduled_date.isoformat() if picking.scheduled_date else None,
+                    },
+                    "operation_type": noneify(picking_type.name),
+                    "source_location": {
+                        "id": source_location.id,
+                        "name": noneify(source_location.complete_name),
+                    },
+                    "destination_location": {
+                        "id": dest_location.id,
+                        "name": noneify(dest_location.complete_name),
+                    },
+                    "products": [
+                        {
+                            "product_id": item['product'].id,
+                            "product_name": noneify(item['product'].name),
+                            "quantity": item['quantity'],
+                        }
+                        for item in validated_products
+                    ],
+                    "note": noneify(note) if note else None,
+                }
+
+                _logger.info(f">>>>>LOAD_CAR>>>> SUCCESS: Transfer {picking.name} created in Draft state")
+
+                return format_response(
+                    True,
+                    "Transfer created successfully in draft state",
+                    response_data,
+                    http_status=200
+                )
+
+        except Exception as e:
+            _logger.exception(">>>>>LOAD_CAR>>>> Exception occurred")
+            return format_response(False, str(e), error_code=-500, http_status=500)

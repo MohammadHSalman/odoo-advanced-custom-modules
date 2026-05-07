@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 # Done+++++++++++++++++++++++++++++++
 import logging
+
 from odoo import http
 from odoo.http import request
+
 from .api_utils import json_response, jwt_required, format_response, noneify
 
 _logger = logging.getLogger(__name__)

@@ -7,5 +7,16 @@
             <field name="padding">4</field>
             <field name="company_id" eval="False"/>
         </record>
+
+        <record id="ir_cron_cleanup_location_history" model="ir.cron">
+            <field name="name">Sales Rep: Cleanup Location History</field>
+            <field name="model_id" ref="model_sales_rep_location"/>
+            <field name="state">code</field>
+            <field name="code">model._gc_location_history()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+            <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 01:00:00')"/>
+        </record>
     </data>
 </odoo>

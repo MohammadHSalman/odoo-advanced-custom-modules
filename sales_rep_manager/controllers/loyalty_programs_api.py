@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from odoo.tools.safe_eval import safe_eval
 
 from odoo import http
 from odoo.http import request
+from odoo.tools.safe_eval import safe_eval
+
 from .api_utils import json_response, jwt_required, format_response, noneify
 
 _logger = logging.getLogger(__name__)

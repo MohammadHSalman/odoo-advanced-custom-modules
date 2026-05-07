@@ -1,8 +1,10 @@
-from odoo import models, fields, api
-from odoo.exceptions import UserError
 import base64
 import io
+
 import pandas as pd
+from odoo import models, fields, api
+from odoo.exceptions import UserError
+
 
 class RouteLineImportWizard(models.TransientModel):
     _name = 'route.line.import.wizard'

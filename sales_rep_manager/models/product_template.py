@@ -7,6 +7,7 @@ class ProductCategory(models.Model):
     _inherit = 'product.category'
     msl_flag = fields.Boolean(string="MSL (Must Selling)", index=True, default=False)
 
+
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
@@ -24,6 +25,7 @@ class ProductTemplate(models.Model):
         string='Sales Channels',
         help='Allowed sales channels for this product'
     )
+
     @api.constrains('name')
     def _check_unique_name(self):
         for record in self:
@@ -36,7 +38,6 @@ class ProductTemplate(models.Model):
 
                 if existing_product:
                     raise ValidationError(f"اسم المنتج '{record.name}' موجود مسبقاً! يرجى اختيار اسم فريد.")
-
 
 
 class ProductProduct(models.Model):

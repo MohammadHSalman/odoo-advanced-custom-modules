@@ -17,6 +17,7 @@
         'views/product_template_views.xml',
         'views/sale_order_views.xml',
         'views/res_currency_views.xml',
+        'views/location_map_views.xml',
         'report/invoice_report_template.xml',
         'report/report_picking_batch.xml',
         'report/stock_picking_batch_report_views.xml',
@@ -27,6 +28,13 @@
         'wizard/import.xml',
         'wizard/import_with_ref_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'sales_rep_manager/static/src/js/location_map/location_map.js',
+            'sales_rep_manager/static/src/xml/location_map.xml',
+        ],
+    },
+
     'installable': True,
     'application': False,
     'auto_install': False,

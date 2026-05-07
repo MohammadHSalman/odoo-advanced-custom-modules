@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 import logging
+
+from odoo import api
 from odoo import http, SUPERUSER_ID
+from odoo.exceptions import AccessDenied
 from odoo.http import request
 from odoo.modules.registry import Registry
-from odoo import api
-from odoo.exceptions import AccessDenied
+
 from .api_utils import make_access_token
 
 _logger = logging.getLogger(__name__)
 
 
 class SessionManagement(http.Controller):
-    DATABASE_NAME = "new_allied_mobile"
+    DATABASE_NAME = "nad_test"
 
     @http.route('/sales_rep_manager/<string:api_version>/login', type='json', auth='none',
                 methods=['POST', 'OPTIONS'], csrf=False, cors="*")
@@ -29,7 +31,6 @@ class SessionManagement(http.Controller):
         dbname = self.DATABASE_NAME
 
         try:
-            # ? ????? Odoo 18 ???????
             credential = {
                 'login': login,
                 'password': password,
@@ -37,7 +38,6 @@ class SessionManagement(http.Controller):
             }
             request.session.authenticate(dbname, credential)
 
-            # ?????? ?? ???? ????? ??????
             uid = request.session.uid
 
             if not uid:
@@ -53,28 +53,35 @@ class SessionManagement(http.Controller):
                 access = make_access_token(user.id, user.login, dbname)
                 cr.commit()
 
-                # ??? ?????? ????? ?????? ???? (stateless)
                 request.session.logout(keep_db=True)
 
                 AccountMove = env['account.move'].sudo()
 
-                # 1. ??? ??? ?????? ?????? (out_invoice) ???
-                last_inv = AccountMove.search([
+                invoices = AccountMove.search([
                     ('user_id', '=', user.id),
                     ('mobile_invoice_number', '!=', False),
-                    ('move_type', '=', 'out_invoice')  # ???????: ????? ????? ??????? ????
-                ], limit=1, order='id desc')
+                    ('move_type', '=', 'out_invoice')
+                ])
+
+                last_inv = max(
+                    invoices,
+                    key=lambda inv: int(inv.mobile_invoice_number.split('-')[-1])
+                ) if invoices else None
 
                 last_local_invoice = last_inv.mobile_invoice_number if last_inv else None
 
-                # 2. ??? ??? ?????? ????? (out_refund) ???
                 last_return = AccountMove.search([
                     ('user_id', '=', user.id),
                     ('mobile_invoice_number', '!=', False),
-                    ('move_type', '=', 'out_refund')  # ???????: ????? ????? ?????? ???? (?????)
-                ], limit=1, order='id desc')
+                    ('move_type', '=', 'out_refund')
+                ])
 
-                last_local_return_invoice = last_return.mobile_invoice_number if last_return else None
+                last_inv_return = max(
+                    last_return,
+                    key=lambda inv: int(inv.mobile_invoice_number.split('-')[-1])
+                ) if last_return else None
+
+                last_local_return_invoice = last_inv_return.mobile_invoice_number if last_inv_return else None
 
                 return {
                     "statuscode": 200,
@@ -100,6 +107,7 @@ class SessionManagement(http.Controller):
         except Exception as e:
             _logger.exception("Authentication error")
             return {"statuscode": 500, "message": str(e)}
+
     @http.route('/sales_rep_manager/<string:api_version>/logout', type='json', auth='none',
                 methods=['POST', 'OPTIONS'], csrf=False, cors="*")
     def logout(self, api_version, **kwargs):
